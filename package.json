@@ -2,13 +2,13 @@
   "private": true,
   "scripts": {
     "start": "node index.js",
-    "format": "prettier --write ./**/*.js"
+    "format": "standard --fix"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.30.0",
     "twitter": "^1.7.1"
   },
   "devDependencies": {
-    "prettier": "^1.18.2"
+    "standard": "^14.3.1"
   }
 }
