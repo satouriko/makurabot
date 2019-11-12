@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api')
 const Twitter = require('twitter')
+const fetch = require('node-fetch')
 
 const bot = new TelegramBot(process.env.TOKEN, { polling: true })
 
@@ -26,12 +27,12 @@ bot.on('callback_query', async callbackQuery => {
 
   if (callbackQuery.data !== 'cancel') {
     const fwdMsg = await bot.forwardMessage(
-      +process.env.ID,
+      +process.env.GM0,
       callbackQuery.message.chat.id,
       callbackQuery.message.reply_to_message.message_id
     )
     await bot.sendMessage(
-      +process.env.ID,
+      +process.env.GM0,
       `来自用户 [${callbackQuery.from.id}](tg://user?id=${callbackQuery.from.id}) ，转发授权：${callbackQuery.data}`,
       {
         reply_to_message_id: fwdMsg.message_id,
@@ -63,14 +64,14 @@ bot.on('edited_message', async msg => {
   }
 
   // not me
-  if (msg.chat.id !== +process.env.ID) {
+  if (msg.chat.id !== +process.env.GM0) {
     const fwdMsg = await bot.forwardMessage(
-      +process.env.ID,
+      +process.env.GM0,
       msg.chat.id,
       msg.message_id
     )
     await bot.sendMessage(
-      +process.env.ID,
+      +process.env.GM0,
       `[${msg.from.id}](tg://user?id=${msg.from.id}) 这个手残编辑了一条消息`,
       {
         reply_to_message_id: fwdMsg.message_id,
@@ -89,12 +90,42 @@ bot.on('message', async msg => {
   // bot command
   if (msg.entities && msg.entities.length &&
     msg.entities.findIndex(e => e.type === 'bot_command') !== -1) {
+    const cmdEntity = msg.entities.find(e => e.type === 'bot_command')
+    const cmd = msg.text.substr(cmdEntity.offset, cmdEntity.length)
+    if (cmd === '/publish_2645lab' &&
+      (msg.chat.id === +process.env.GM0 || msg.chat.id === +process.env.GM1)) {
+      try {
+        const res = await fetch(
+          process.env.NETLIFY_WEBHOOK_2645LAB,
+          { method: 'POST', body: JSON.stringify({}) }
+        )
+        if (!res.ok) {
+          console.error(res)
+          await bot.sendMessage(msg.chat.id,
+            `构建请求失败。${res.statusText}`,
+            { reply_to_message_id: msg.message_id }
+          )
+        } else {
+          await bot.sendMessage(msg.chat.id,
+            '已开始构建。',
+            { reply_to_message_id: msg.message_id }
+          )
+        }
+      } catch (err) {
+        console.error(err)
+        await bot.sendMessage(msg.chat.id,
+          `构建请求失败。${err.toString()}`,
+          { reply_to_message_id: msg.message_id }
+        )
+      }
+      return
+    }
     await defaultReply(bot, msg)
     return
   }
 
   // not me
-  if (msg.chat.id !== +process.env.ID) {
+  if (msg.chat.id !== +process.env.GM0) {
     await bot.sendMessage(msg.chat.id,
       '请回答妹抖酱的问题以完成消息发送\n\n乃将如何授权主人使用乃的消息',
       {
