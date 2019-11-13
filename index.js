@@ -125,9 +125,16 @@ bot.on('edited_message', async msg => {
   // bot command
   if (msg.entities && msg.entities.length &&
     msg.entities.findIndex(e => e.type === 'bot_command') !== -1) {
-    await defaultReply(bot, msg)
+    if (msg.chat.type === 'private') {
+      await bot.sendMessage(msg.chat.id,
+        '编辑是没什么卵用的',
+        { reply_to_message_id: msg.message_id }
+      )
+    }
     return
   }
+
+  if (msg.chat.type !== 'private') return
 
   // not me
   if (msg.chat.id !== +process.env.GM0) {
@@ -153,8 +160,6 @@ bot.on('edited_message', async msg => {
 })
 
 bot.on('message', async msg => {
-  if (!msg.text) return
-
   const pushSession = (sentMsg, cmd) => {
     if (!store.state.session[msg.chat.id + '']) {
       store.state.session[msg.chat.id + ''] = {}
@@ -286,9 +291,11 @@ bot.on('message', async msg => {
       return
     }
 
-    await defaultReply(bot, msg)
+    if (msg.chat.type === 'private') await defaultReply(bot, msg)
     return
   }
+
+  if (msg.chat.type !== 'private') return
 
   // not me
   if (msg.chat.id !== +process.env.GM0) {
