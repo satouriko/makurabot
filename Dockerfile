@@ -4,3 +4,4 @@ RUN cd /telegram-twitter-bot && npm install
 COPY . /telegram-twitter-bot
 WORKDIR /telegram-twitter-bot
 CMD node index.js
+VOLUME ["/data"]

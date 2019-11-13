@@ -1,15 +1,11 @@
 const TelegramBot = require('node-telegram-bot-api')
-const Twitter = require('twitter')
 const fetch = require('node-fetch')
+const store = require('./store')
+const { sendTwitter } = require('./twitter')
+const { getWeatherNow, getWeatherForecast, queryCity } = require('./heweather')
+const { formatWeather, formatLegend } = require('./format_weather')
 
 const bot = new TelegramBot(process.env.TOKEN, { polling: true })
-
-const client = new Twitter({
-  consumer_key: process.env.TWITTER_CONSUMER_KEY,
-  consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
-  access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY,
-  access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET
-})
 
 bot.on('callback_query', async callbackQuery => {
   if (!callbackQuery.message) {
@@ -17,11 +13,76 @@ bot.on('callback_query', async callbackQuery => {
     return
   }
 
-  if (callbackQuery.from.id !== callbackQuery.message.reply_to_message.from.id) {
+  if (callbackQuery.message.reply_to_message &&
+      callbackQuery.from.id !== callbackQuery.message.reply_to_message.from.id) {
     await bot.answerCallbackQuery(callbackQuery.id, {
       text: '不要！',
       show_alert: true
     })
+    return
+  }
+
+  let cmd
+  if (store.state.session[callbackQuery.chat.id + ''] &&
+    store.state.session[callbackQuery.chat.id + ''][callbackQuery.message.message_id]
+  ) {
+    cmd = store.state.session[callbackQuery.chat.id + ''][callbackQuery.message.message_id]
+  } else {
+    await bot.editMessageReplyMarkup(null, {
+      chat_id: callbackQuery.message.chat.id,
+      message_id: callbackQuery.message.message_id
+    })
+    await bot.editMessageText(
+      '会话已过期，请重新请求。',
+      {
+        chat_id: callbackQuery.message.chat.id,
+        message_id: callbackQuery.message.message_id
+      }
+    )
+  }
+
+  if (cmd === '/add_city') {
+    if (!store.state.weather[callbackQuery.chat.id + '']) {
+      store.state.weather[callbackQuery.chat.id + ''] = []
+    }
+    store.state.weather[callbackQuery.chat.id + ''].push(callbackQuery.data)
+    store.save()
+    delete store.state.session[callbackQuery.chat.id + ''][callbackQuery.message.message_id]
+    await bot.editMessageReplyMarkup(null, {
+      chat_id: callbackQuery.message.chat.id,
+      message_id: callbackQuery.message.message_id
+    })
+    await bot.editMessageText(
+      '妹抖酱已经把乃的城市加上惹!\\(๑╹◡╹๑)ﾉ♬',
+      {
+        chat_id: callbackQuery.message.chat.id,
+        message_id: callbackQuery.message.message_id
+      }
+    )
+    await bot.answerCallbackQuery(callbackQuery.id)
+    return
+  }
+
+  if (cmd === '/remove_city') {
+    if (!store.state.weather[callbackQuery.chat.id + '']) {
+      store.state.weather[callbackQuery.chat.id + ''] = []
+    }
+    store.state.weather[callbackQuery.chat.id + ''] =
+      store.state.weather[callbackQuery.chat.id + ''].filter(cid => cid !== callbackQuery.data)
+    store.save()
+    delete store.state.session[callbackQuery.chat.id + ''][callbackQuery.message.message_id]
+    await bot.editMessageReplyMarkup(null, {
+      chat_id: callbackQuery.message.chat.id,
+      message_id: callbackQuery.message.message_id
+    })
+    await bot.editMessageText(
+      '妹抖酱已经把乃的城市删惹!\\(๑╹◡╹๑)ﾉ♬',
+      {
+        chat_id: callbackQuery.message.chat.id,
+        message_id: callbackQuery.message.message_id
+      }
+    )
+    await bot.answerCallbackQuery(callbackQuery.id)
     return
   }
 
@@ -51,7 +112,7 @@ bot.on('callback_query', async callbackQuery => {
       message_id: callbackQuery.message.message_id
     }
   )
-
+  delete store.state.session[callbackQuery.chat.id + ''][callbackQuery.message.message_id]
   await bot.answerCallbackQuery(callbackQuery.id)
 })
 
@@ -87,11 +148,21 @@ bot.on('edited_message', async msg => {
 })
 
 bot.on('message', async msg => {
+  const pushSession = (sentMsg, cmd) => {
+    if (!store.state.session[msg.chat.id + '']) {
+      store.state.session[msg.chat.id + ''] = {}
+    }
+    store.state.session[msg.chat.id + ''][sentMsg.message_id + ''] = cmd
+  }
+
   // bot command
   if (msg.entities && msg.entities.length &&
     msg.entities.findIndex(e => e.type === 'bot_command') !== -1) {
     const cmdEntity = msg.entities.find(e => e.type === 'bot_command')
-    const cmd = msg.text.substr(cmdEntity.offset, cmdEntity.length)
+    let cmd = msg.text.substr(cmdEntity.offset, cmdEntity.length)
+    if (cmd.indexOf('@') !== -1) {
+      cmd = cmd.substring(0, cmd.indexOf('@'))
+    }
     if (cmd === '/publish_2645lab' &&
       (msg.chat.id === +process.env.GM0 || msg.chat.id === +process.env.GM1)) {
       try {
@@ -120,13 +191,76 @@ bot.on('message', async msg => {
       }
       return
     }
+    if (cmd === '/add_city' || cmd === '/remove_city') {
+      const args = msg.text
+        .substr(cmdEntity.offset + cmdEntity.length).trim()
+      try {
+        const result = await queryCity(args)
+        const sentMsg = await bot.sendMessage(msg.chat.id,
+          result.length === 0 ? '没有找到你查询的城市……'
+            : result.length === 1 ? '是这里吗？'
+              : '是哪一个呢？',
+          {
+            reply_markup: result.length === 0 ? {} : {
+              inline_keyboard: result.map(city => (
+                [{ text: city.fullname, callback_data: city.cid }]
+              ))
+            }
+          }
+        )
+        if (result.length > 0) pushSession(sentMsg, cmd)
+      } catch (err) {
+        console.error(err)
+        await bot.sendMessage(msg.chat.id, err.message)
+      }
+      return
+    }
+
+    if (cmd === '/weather' || cmd === '/tenki' || cmd === '/tianqi') {
+      const lang = cmd === '/weather' ? 'en'
+        : cmd === '/tenki' ? 'ja' : 'zh'
+      const cites = store.state.weather[msg.chat.id + '']
+      if (!cites || !cites.length) {
+        await bot.sendMessage(
+          msg.chat.id,
+          '乃还没有添加城市，用 /add_city <城市名> 来添加一个城市吧！'
+        )
+        return
+      }
+      const cityWeathers = []
+      for (const city of cites) {
+        try {
+          const weatherNow = await getWeatherNow(city, lang)
+          const weatherDaily = await getWeatherForecast(city, lang)
+          const formattedWeather = formatWeather(weatherNow, weatherDaily)
+          cityWeathers.push(formattedWeather)
+        } catch (err) {
+          cityWeathers.push(`${city}: ${err}`)
+        }
+      }
+      const title = msg.chat.type !== 'private'
+        ? (lang === 'zh' ? '你群天气：' : lang === 'en' ? 'Nǐ qún tiānqì:' : '二チュンテンチイ：')
+        : (lang === 'zh' ? '你城天气：' : lang === 'en' ? 'Nǐ chéng tiānqì:' : '二チェンテンチイ：')
+      await bot.sendMessage(msg.chat.id, `${title}\n${cityWeathers.join('\n')}`)
+      return
+    }
+
+    if (cmd === '/legend' || cmd === '/hanrei' || cmd === 'tuli') {
+      const args = msg.text
+        .substr(cmdEntity.offset + cmdEntity.length).trim()
+      const lang = cmd === '/legend' ? 'en'
+        : cmd === '/hanrei' ? 'ja' : 'zh'
+      await bot.sendMessage(msg.chat.id, formatLegend(args, lang))
+      return
+    }
+
     await defaultReply(bot, msg)
     return
   }
 
   // not me
   if (msg.chat.id !== +process.env.GM0) {
-    await bot.sendMessage(msg.chat.id,
+    const sentMsg = await bot.sendMessage(msg.chat.id,
       '请回答妹抖酱的问题以完成消息发送\n\n乃将如何授权主人使用乃的消息',
       {
         reply_to_message_id: msg.message_id,
@@ -139,6 +273,7 @@ bot.on('message', async msg => {
         }
       }
     )
+    pushSession(sentMsg, 'plain_text')
   } else {
     if (msg.reply_to_message) {
       if (msg.text && msg.reply_to_message.entities) {
@@ -168,29 +303,4 @@ async function defaultReply (bot, msg) {
   await bot.sendSticker(msg.chat.id, 'CAADBQAD2gYAAvjGxQo7kXhU-BM5fQI', {
     reply_to_message_id: msg.message_id
   })
-}
-
-async function sendTwitter (bot, msg) {
-  // text message
-  if (msg.text) {
-    try {
-      const tweet = await client.post('statuses/update', { status: msg.text })
-      console.log(tweet)
-      await bot.sendMessage(msg.chat.id,
-        `推文已发送。https://twitter.com/${tweet.user.screen_name}/status/${tweet.id_str}`,
-        { reply_to_message_id: msg.message_id }
-      )
-    } catch (err) {
-      console.error(err)
-      await bot.sendMessage(msg.chat.id,
-        `推文发送失败。${err.toString()}`,
-        { reply_to_message_id: msg.message_id }
-      )
-    }
-  } else {
-    await bot.sendMessage(msg.chat.id,
-      '暂不支持这种格式的推文。',
-      { reply_to_message_id: msg.message_id }
-    )
-  }
 }
