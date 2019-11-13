@@ -306,7 +306,7 @@ weatherConditions.snow = {
   400: {
     emoji: '\ud83c\udf28',
     zh: '小雪',
-    en: ' Light Snow',
+    en: 'Light Snow',
     ja: '弱い雪'
   },
   401: {
@@ -508,7 +508,7 @@ function formatLegend (queryEmoji, lang) {
       break
     }
   }
-  if (!emojiSet) {
+  if (!queryEmoji || !emojiSet) {
     switch (lang) {
       case 'ja':
         return `${promptEmojiList} のいずれかを入力してください`
@@ -539,8 +539,8 @@ function formatWeather (current, daily) {
       const today = daily.daily_forecast[0]
       const toISOTZ = (tzStr) => {
         const decimal = (+tzStr / 100).toFixed(4)
-        const str = `${decimal < 0 ? '-' : ''}${decimal.substr(decimal.indexOf('.') + 1)}`
-        return str === '0000' || str === '-0000' ? 'Z' : str
+        const str = `${decimal < 0 ? '-' : '+'}${decimal.substr(decimal.indexOf('.') + 1)}`
+        return str === '+0000' || str === '-0000' ? 'Z' : str
       }
       const toTZOffset = (tzStr) => {
         return -60 * +tzStr
@@ -552,7 +552,7 @@ function formatWeather (current, daily) {
       const sr = time2Date(today.sr); const ss = time2Date(today.ss)
       const ds = time2Date('00:00'); const de = time2Date('23:59:59.999')
       const now = new Date()
-      if (now < sr || now > ss) {
+      if (wc.emojiNight && (now < sr || now > ss)) {
         emoji = wc.emojiNight
         const timesYouCanSeeMoon = []
         if (mr < ms) {
@@ -577,6 +577,7 @@ function formatWeather (current, daily) {
     }
     return `${current.basic.location} ${emoji} ${current.now.tmp}°C`
   } catch (err) {
+    console.log(err)
     return 'Internal error.'
   }
 }

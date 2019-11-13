@@ -68,16 +68,20 @@ bot.on('callback_query', async callbackQuery => {
     if (!store.state.weather[callbackQuery.message.chat.id + '']) {
       store.state.weather[callbackQuery.message.chat.id + ''] = []
     }
-    store.state.weather[callbackQuery.message.chat.id + ''] =
-      store.state.weather[callbackQuery.message.chat.id + ''].filter(cid => cid !== callbackQuery.data)
-    store.save()
+    let deleted = false
+    if (store.state.weather[callbackQuery.message.chat.id + ''].indexOf(callbackQuery.data) !== -1) {
+      store.state.weather[callbackQuery.message.chat.id + ''] =
+        store.state.weather[callbackQuery.message.chat.id + ''].filter(cid => cid !== callbackQuery.data)
+      deleted = true
+      store.save()
+    }
     delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
       message_id: callbackQuery.message.message_id
     })
     await bot.editMessageText(
-      '妹抖酱已经把乃的城市删惹!\\(๑╹◡╹๑)ﾉ♬',
+      deleted ? '妹抖酱已经把乃的城市删惹!\\(๑╹◡╹๑)ﾉ♬' : '你有订阅这个城市吗(ノ｀Д´)ノ彡┻━┻',
       {
         chat_id: callbackQuery.message.chat.id,
         message_id: callbackQuery.message.message_id
@@ -197,24 +201,37 @@ bot.on('message', async msg => {
     if (cmd === '/add_city' || cmd === '/remove_city') {
       const args = msg.text
         .substr(cmdEntity.offset + cmdEntity.length).trim()
+      const sentMsg = await bot.sendMessage(msg.chat.id, `请稍候……`, {
+        reply_to_message_id: msg.message_id
+      })
       try {
         const result = await queryCity(args)
-        const sentMsg = await bot.sendMessage(msg.chat.id,
+        await bot.editMessageText(
           result.length === 0 ? '没有找到你查询的城市……'
             : result.length === 1 ? '是这里吗？'
-              : '是哪一个呢？',
+            : '是哪一个呢？',
           {
-            reply_markup: result.length === 0 ? {} : {
-              inline_keyboard: result.map(city => (
-                [{ text: city.fullname, callback_data: city.cid }]
-              ))
-            }
+            chat_id: msg.chat.id,
+            message_id: sentMsg.message_id
           }
         )
+        if (result.length > 0) {
+          await bot.editMessageReplyMarkup({
+            inline_keyboard: result.map(city => (
+              [{ text: city.fullname, callback_data: city.cid }]
+            ))
+          }, {
+            chat_id: msg.chat.id,
+            message_id: sentMsg.message_id
+          })
+        }
         if (result.length > 0) pushSession(sentMsg, cmd)
       } catch (err) {
         console.error(err)
-        await bot.sendMessage(msg.chat.id, err.message)
+        await bot.editMessageText(err.message, {
+          chat_id: msg.chat.id,
+          message_id: sentMsg.message_id
+        })
       }
       return
     }
@@ -230,6 +247,7 @@ bot.on('message', async msg => {
         )
         return
       }
+      const sentMsg = await bot.sendMessage(msg.chat.id, `请稍候……`)
       const cityWeathers = []
       for (const city of cites) {
         try {
@@ -248,10 +266,14 @@ bot.on('message', async msg => {
         }
       }
       cityWeathers.sort((a, b) => (b.lat - a.lat))
-      const title = msg.chat.type !== 'private'
-        ? (lang === 'zh' ? '你群天气：' : lang === 'en' ? 'Nǐ qún tiānqì:' : '二チュンテンチイ：')
-        : (lang === 'zh' ? '你城天气：' : lang === 'en' ? 'Nǐ chéng tiānqì:' : '二チェンテンチイ：')
-      await bot.sendMessage(msg.chat.id, `${title}\n${cityWeathers.map(d => d.text).join('\n')}`)
+      const title = msg.chat.type !== 'private' ? '你群天气：' : '你城天气：'
+      await bot.editMessageText(
+        `${title}\n${cityWeathers.map(d => d.text).join('\n')}`,
+        {
+          chat_id: msg.chat.id,
+          message_id: sentMsg.message_id
+        }
+      )
       return
     }
 
