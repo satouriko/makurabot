@@ -1,13 +1,20 @@
 const fetch = require('node-fetch')
 
 async function heweather6 (req) {
-  const res =
-    await fetch(`https://free-api.heweather.net/s6/weather/${req}&key=${process.env.HEWEATHER_KEY}`)
+  let res
+  try {
+    res =
+      await fetch(`https://free-api.heweather.net/s6/weather/${req}&key=${process.env.HEWEATHER_KEY}`)
+  } catch (e) {
+    console.error(e)
+    throw new Error('Network error.')
+  }
   if (!res.ok) {
     throw new Error(res.statusText)
   }
   const json = await res.json()
   if (!json.HeWeather6) {
+    console.error(json)
     throw new Error('Bad api response from Heweather.')
   }
   if (json.HeWeather6[0].status !== 'ok') {

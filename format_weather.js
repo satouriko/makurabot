@@ -46,7 +46,7 @@ weatherConditions.moon = {
     en: 'Last Quarter Moon'
   },
   7: {
-    emoji: '🌘\ud83c\udf18',
+    emoji: '\ud83c\udf18',
     zh: '残月',
     ja: '暁月',
     en: 'Waning Crescent Moon'
@@ -502,12 +502,10 @@ const promptEmojiList = '\ud83c\udf19\u2601\ufe0f\ud83c\udf2c\ud83c\udf27\ud83c\
 function formatLegend (queryEmoji, lang) {
   let emojiSet
   const order = ['others', 'fog', 'snow', 'rain', 'wind', 'cloud', 'moon']
-  for (const char of queryEmoji) {
-    for (const emojiSetKey of order) {
-      if (emojiList[emojiSetKey].match(char)) {
-        emojiSet = weatherConditions[emojiSetKey]
-        break
-      }
+  for (const emojiSetKey of order) {
+    if (emojiList[emojiSetKey].match(queryEmoji)) {
+      emojiSet = weatherConditions[emojiSetKey]
+      break
     }
   }
   if (!emojiSet) {
@@ -537,8 +535,8 @@ function formatWeather (current, daily) {
     }
     const wc = weatherConditions[keyMap[code[0]]][code]
     let emoji = wc.emoji
-    if (daily && daily.daily_forcast && daily.daily_forcast.length) {
-      const today = daily.daily_forcast[0]
+    if (daily && daily.daily_forecast && daily.daily_forecast.length) {
+      const today = daily.daily_forecast[0]
       const toISOTZ = (tzStr) => {
         const decimal = (+tzStr / 100).toFixed(4)
         const str = `${decimal < 0 ? '-' : ''}${decimal.substr(decimal.indexOf('.') + 1)}`

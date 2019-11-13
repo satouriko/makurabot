@@ -23,10 +23,10 @@ bot.on('callback_query', async callbackQuery => {
   }
 
   let cmd
-  if (store.state.session[callbackQuery.chat.id + ''] &&
-    store.state.session[callbackQuery.chat.id + ''][callbackQuery.message.message_id]
+  if (store.state.session[callbackQuery.message.chat.id + ''] &&
+    store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
   ) {
-    cmd = store.state.session[callbackQuery.chat.id + ''][callbackQuery.message.message_id]
+    cmd = store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
   } else {
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
@@ -39,15 +39,16 @@ bot.on('callback_query', async callbackQuery => {
         message_id: callbackQuery.message.message_id
       }
     )
+    return
   }
 
   if (cmd === '/add_city') {
-    if (!store.state.weather[callbackQuery.chat.id + '']) {
-      store.state.weather[callbackQuery.chat.id + ''] = []
+    if (!store.state.weather[callbackQuery.message.chat.id + '']) {
+      store.state.weather[callbackQuery.message.chat.id + ''] = []
     }
-    store.state.weather[callbackQuery.chat.id + ''].push(callbackQuery.data)
+    store.state.weather[callbackQuery.message.chat.id + ''].push(callbackQuery.data)
     store.save()
-    delete store.state.session[callbackQuery.chat.id + ''][callbackQuery.message.message_id]
+    delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
       message_id: callbackQuery.message.message_id
@@ -64,13 +65,13 @@ bot.on('callback_query', async callbackQuery => {
   }
 
   if (cmd === '/remove_city') {
-    if (!store.state.weather[callbackQuery.chat.id + '']) {
-      store.state.weather[callbackQuery.chat.id + ''] = []
+    if (!store.state.weather[callbackQuery.message.chat.id + '']) {
+      store.state.weather[callbackQuery.message.chat.id + ''] = []
     }
-    store.state.weather[callbackQuery.chat.id + ''] =
-      store.state.weather[callbackQuery.chat.id + ''].filter(cid => cid !== callbackQuery.data)
+    store.state.weather[callbackQuery.message.chat.id + ''] =
+      store.state.weather[callbackQuery.message.chat.id + ''].filter(cid => cid !== callbackQuery.data)
     store.save()
-    delete store.state.session[callbackQuery.chat.id + ''][callbackQuery.message.message_id]
+    delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
       message_id: callbackQuery.message.message_id
@@ -112,7 +113,7 @@ bot.on('callback_query', async callbackQuery => {
       message_id: callbackQuery.message.message_id
     }
   )
-  delete store.state.session[callbackQuery.chat.id + ''][callbackQuery.message.message_id]
+  delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
   await bot.answerCallbackQuery(callbackQuery.id)
 })
 
@@ -235,19 +236,26 @@ bot.on('message', async msg => {
           const weatherNow = await getWeatherNow(city, lang)
           const weatherDaily = await getWeatherForecast(city, lang)
           const formattedWeather = formatWeather(weatherNow, weatherDaily)
-          cityWeathers.push(formattedWeather)
+          cityWeathers.push({
+            lat: weatherNow.basic.lat,
+            text: formattedWeather
+          })
         } catch (err) {
-          cityWeathers.push(`${city}: ${err}`)
+          cityWeathers.push({
+            lat: -Infinity,
+            text: `${city}: ${err}`
+          })
         }
       }
+      cityWeathers.sort((a, b) => (b.lat - a.lat))
       const title = msg.chat.type !== 'private'
         ? (lang === 'zh' ? '你群天气：' : lang === 'en' ? 'Nǐ qún tiānqì:' : '二チュンテンチイ：')
         : (lang === 'zh' ? '你城天气：' : lang === 'en' ? 'Nǐ chéng tiānqì:' : '二チェンテンチイ：')
-      await bot.sendMessage(msg.chat.id, `${title}\n${cityWeathers.join('\n')}`)
+      await bot.sendMessage(msg.chat.id, `${title}\n${cityWeathers.map(d => d.text).join('\n')}`)
       return
     }
 
-    if (cmd === '/legend' || cmd === '/hanrei' || cmd === 'tuli') {
+    if (cmd === '/legend' || cmd === '/hanrei' || cmd === '/tuli') {
       const args = msg.text
         .substr(cmdEntity.offset + cmdEntity.length).trim()
       const lang = cmd === '/legend' ? 'en'
