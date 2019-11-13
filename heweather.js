@@ -1,5 +1,7 @@
 const fetch = require('node-fetch')
 
+const heweatherCache = {}
+
 async function heweather6 (req) {
   let res
   try {
@@ -29,17 +31,47 @@ async function getFirst (req) {
 }
 
 async function now (loc, lang) {
-  return getFirst(`now?location=${encodeURIComponent(loc)}&lang=${encodeURIComponent(lang)}`)
+  const cache = heweatherCache[`now://${loc},${lang}`]
+  if (cache) {
+    const lastUpdate = new Date(cache.update.utc.replace(/ /, 'T') + 'Z')
+    lastUpdate.setHours(lastUpdate.getHours() + 1)
+    const now = new Date()
+    if (now < lastUpdate) {
+      return cache
+    }
+  }
+  const result = await getFirst(`now?location=${encodeURIComponent(loc)}&lang=${encodeURIComponent(lang)}`)
+  heweatherCache[`now://${loc},${lang}`] = result
+  return result
 }
 
 async function forecast (loc, lang) {
-  return getFirst(`forecast?location=${encodeURIComponent(loc)}&lang=${encodeURIComponent(lang)}`)
+  const toISOTZ = (tzStr) => {
+    const decimal = (+tzStr / 100).toFixed(4)
+    const str = `${decimal < 0 ? '-' : '+'}${decimal.substr(decimal.indexOf('.') + 1)}`
+    return str === '+0000' || str === '-0000' ? 'Z' : str
+  }
+  const cache = heweatherCache[`forecast://${loc},${lang}`]
+  if (cache) {
+    const lastUpdate = new Date(`${cache.daily_forecast[0].date}T00:00${toISOTZ(cache.basic.tz)}`)
+    lastUpdate.setDate(lastUpdate.getDate() + 1)
+    const now = new Date()
+    if (now < lastUpdate) {
+      return cache
+    }
+  }
+  const result = await getFirst(`forecast?location=${encodeURIComponent(loc)}&lang=${encodeURIComponent(lang)}`)
+  heweatherCache[`forecast://${loc},${lang}`] = result
+  return result
 }
 
 async function queryCity (loc) {
+  const cache = heweatherCache[`city://${loc}`]
+  if (cache) return cache
+  let result
   try {
     const he = await heweather6(`now?location=${encodeURIComponent(loc)}`)
-    return he.map(data => {
+    result = he.map(data => {
       data = data.basic
       let fullname = data.location
       if (data.parent_city !== data.location) fullname += `, ${data.parent_city}`
@@ -52,10 +84,11 @@ async function queryCity (loc) {
     })
   } catch (err) {
     if (err.message === 'unknown location') {
-      return []
-    }
-    throw err
+      result = []
+    } else throw err
   }
+  heweatherCache[`city://${loc}`] = result
+  return result
 }
 
 module.exports = {

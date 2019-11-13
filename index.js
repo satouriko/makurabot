@@ -201,7 +201,7 @@ bot.on('message', async msg => {
     if (cmd === '/add_city' || cmd === '/remove_city') {
       const args = msg.text
         .substr(cmdEntity.offset + cmdEntity.length).trim()
-      const sentMsg = await bot.sendMessage(msg.chat.id, `请稍候……`, {
+      const sentMsg = await bot.sendMessage(msg.chat.id, '请稍候……', {
         reply_to_message_id: msg.message_id
       })
       try {
@@ -209,7 +209,7 @@ bot.on('message', async msg => {
         await bot.editMessageText(
           result.length === 0 ? '没有找到你查询的城市……'
             : result.length === 1 ? '是这里吗？'
-            : '是哪一个呢？',
+              : '是哪一个呢？',
           {
             chat_id: msg.chat.id,
             message_id: sentMsg.message_id
@@ -247,12 +247,12 @@ bot.on('message', async msg => {
         )
         return
       }
-      const sentMsg = await bot.sendMessage(msg.chat.id, `请稍候……`)
+      const sentMsg = await bot.sendMessage(msg.chat.id, '请稍候……')
       const cityWeathers = []
       for (const city of cites) {
         try {
           const weatherNow = await getWeatherNow(city, lang)
-          const weatherDaily = await getWeatherForecast(city, lang)
+          const weatherDaily = await getWeatherForecast(city, 'en')
           const formattedWeather = formatWeather(weatherNow, weatherDaily)
           cityWeathers.push({
             lat: weatherNow.basic.lat,
