@@ -148,6 +148,8 @@ bot.on('edited_message', async msg => {
 })
 
 bot.on('message', async msg => {
+  if (!msg.text) return
+
   const pushSession = (sentMsg, cmd) => {
     if (!store.state.session[msg.chat.id + '']) {
       store.state.session[msg.chat.id + ''] = {}

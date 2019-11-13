@@ -12,6 +12,7 @@ class Store {
         console.error('failed to parse store: ', err)
         store = initStore
       }
+      store.session = {}
       fs.access(this.storePath, fs.constants.W_OK, err => {
         if (err) {
           console.error(`cannot write lockfile ${this.storePath}, permission denied`)
