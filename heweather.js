@@ -31,17 +31,20 @@ async function getFirst (req) {
 }
 
 async function now (loc, lang) {
-  const cache = heweatherCache[`now://${loc},${lang}`]
-  if (cache) {
+  const cache = heweatherCache[`now://${loc}`]
+  const basicCache = heweatherCache[`basic://${loc},${lang}`]
+  if (cache && basicCache) {
     const lastUpdate = new Date(cache.update.utc.replace(/ /, 'T') + 'Z')
-    lastUpdate.setHours(lastUpdate.getHours() + 1)
+    lastUpdate.setMinutes(lastUpdate.getMinutes() + 10)
     const now = new Date()
     if (now < lastUpdate) {
+      cache.basic = basicCache
       return cache
     }
   }
   const result = await getFirst(`now?location=${encodeURIComponent(loc)}&lang=${encodeURIComponent(lang)}`)
-  heweatherCache[`now://${loc},${lang}`] = result
+  heweatherCache[`now://${loc}`] = result
+  heweatherCache[`basic://${loc},${lang}`] = result.basic
   return result
 }
 
@@ -51,17 +54,20 @@ async function forecast (loc, lang) {
     const str = `${decimal < 0 ? '-' : '+'}${decimal.substr(decimal.indexOf('.') + 1)}`
     return str === '+0000' || str === '-0000' ? 'Z' : str
   }
-  const cache = heweatherCache[`forecast://${loc},${lang}`]
-  if (cache) {
+  const cache = heweatherCache[`forecast://${loc}`]
+  const basicCache = heweatherCache[`basic://${loc},${lang}`]
+  if (cache && basicCache) {
     const lastUpdate = new Date(`${cache.daily_forecast[0].date}T00:00${toISOTZ(cache.basic.tz)}`)
     lastUpdate.setDate(lastUpdate.getDate() + 1)
     const now = new Date()
     if (now < lastUpdate) {
+      cache.basic = basicCache
       return cache
     }
   }
   const result = await getFirst(`forecast?location=${encodeURIComponent(loc)}&lang=${encodeURIComponent(lang)}`)
-  heweatherCache[`forecast://${loc},${lang}`] = result
+  heweatherCache[`forecast://${loc}`] = result
+  heweatherCache[`basic://${loc},${lang}`] = result.basic
   return result
 }
 

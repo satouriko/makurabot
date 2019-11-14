@@ -275,7 +275,7 @@ bot.on('message', async msg => {
         )
         return
       }
-      const sentMsg = await bot.sendMessage(msg.chat.id, '妹抖酱正在拉取更新……请您稍作休息')
+      const sentMsg = await bot.sendMessage(msg.chat.id, '妹抖酱正在拉取更新……请您稍等')
       await queryWeather(sentMsg, cmd, cites)
       return
     }
@@ -368,7 +368,34 @@ async function queryWeather (sentMsg, cmd, cites) {
     : cmd === '/tenki' ? 'ja' : 'zh'
   const cityWeathers = []
   let error
+  let needUpdate = false
+  let lastUpdateCnt = 0
+  let timer = setTimeout(() => {
+    needUpdate = true
+  }, 10000)
+  const update = async (isFinal) => {
+    if (!isFinal && cityWeathers.length === lastUpdateCnt) return
+    cityWeathers.sort((a, b) => (b.lat - a.lat))
+    const title = sentMsg.chat.type !== 'private' ? '你群天气：' : '你城天气：'
+    let result = `${title}\n${cityWeathers.map(d => d.text).join('\n')}`
+    if (!isFinal) result = `${result}\n妹抖酱仍在拉取更新……感谢您的耐心(´;ω;)`
+    await bot.editMessageText(
+      result,
+      {
+        chat_id: sentMsg.chat.id,
+        message_id: sentMsg.message_id
+      }
+    )
+    lastUpdateCnt = cityWeathers.length
+  }
   for (const city of cites) {
+    if (needUpdate) {
+      needUpdate = false
+      await update(false)
+      timer = setTimeout(() => {
+        needUpdate = true
+      }, 10000)
+    }
     try {
       const weatherNow = await getWeatherNow(city, lang)
       const weatherDaily = await getWeatherForecast(city, 'en')
@@ -385,15 +412,8 @@ async function queryWeather (sentMsg, cmd, cites) {
       error = true
     }
   }
-  cityWeathers.sort((a, b) => (b.lat - a.lat))
-  const title = sentMsg.chat.type !== 'private' ? '你群天气：' : '你城天气：'
-  await bot.editMessageText(
-    `${title}\n${cityWeathers.map(d => d.text).join('\n')}`,
-    {
-      chat_id: sentMsg.chat.id,
-      message_id: sentMsg.message_id
-    }
-  )
+  clearTimeout(timer)
+  await update(true)
   if (error) {
     pushSession(sentMsg, cmd, cites)
     await bot.editMessageReplyMarkup({
