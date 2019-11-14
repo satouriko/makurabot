@@ -9,7 +9,7 @@ async function heweather6 (req) {
       await fetch(`https://free-api.heweather.net/s6/weather/${req}&key=${process.env.HEWEATHER_KEY}`)
   } catch (e) {
     console.error(e)
-    throw new Error('Network error.')
+    throw new Error('天气卖完了( >﹏<。) 真的很抱歉, 客人大人可以私聊我联系主人')
   }
   if (!res.ok) {
     throw new Error(res.statusText)
@@ -17,7 +17,7 @@ async function heweather6 (req) {
   const json = await res.json()
   if (!json.HeWeather6) {
     console.error(json)
-    throw new Error('Bad api response from Heweather.')
+    throw new Error('这是一个意外( >﹏<。) 真的很抱歉, 客人大人可以私聊我联系主人')
   }
   if (json.HeWeather6[0].status !== 'ok') {
     throw new Error(json.HeWeather6[0].status)

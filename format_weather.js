@@ -107,7 +107,7 @@ weatherConditions.wind = {
     emoji: '\ud83c\udf2c\ud83d\udca4',
     zh: '微风',
     en: 'Light Breeze',
-    ja: '弱い風'
+    ja: '非常に弱い風'
   },
   203: {
     emoji: '\ud83c\udf2c',
@@ -119,7 +119,7 @@ weatherConditions.wind = {
     emoji: '\ud83c\udf2c\ud83c\udf2c',
     zh: '清风',
     en: 'Fresh Breeze',
-    ja: '弱い風'
+    ja: 'やや弱い風'
   },
   205: {
     emoji: '\ud83d\udca8',
@@ -137,13 +137,13 @@ weatherConditions.wind = {
     emoji: '\ud83d\udca8\u203c\ufe0f',
     zh: '大风',
     en: 'Gale',
-    ja: '強い風'
+    ja: '非常に強い風'
   },
   208: {
     emoji: '\ud83d\udca8\ud83d\udca8',
     zh: '烈风',
     en: 'Strong Gale',
-    ja: '非常に強い風'
+    ja: '大風'
   },
   209: {
     emoji: '\ud83c\udf00',
@@ -161,7 +161,7 @@ weatherConditions.wind = {
     emoji: '\ud83c\udf00\u203c\ufe0f',
     zh: '飓风',
     en: 'Hurricane',
-    ja: '猛烈な風'
+    ja: '非常に猛烈な風'
   },
   212: {
     emoji: '\ud83c\udf2a',
@@ -173,7 +173,7 @@ weatherConditions.wind = {
     emoji: '\ud83c\udf00\ud83c\udf00',
     zh: '热带风暴',
     en: 'Tropical Storm',
-    ja: '猛烈な風'
+    ja: '熱帯低気圧'
   }
 }
 
@@ -577,8 +577,8 @@ function formatWeather (current, daily) {
     }
     return `${current.basic.location} ${emoji} ${current.now.tmp}°C`
   } catch (err) {
-    console.log(err)
-    return 'Internal error.'
+    console.error(err)
+    return '妹抖酱坏掉了. 这都是我的错, 客人大人不要责怪她们( >﹏<。)'
   }
 }
 

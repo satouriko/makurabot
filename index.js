@@ -1,9 +1,16 @@
 const TelegramBot = require('node-telegram-bot-api')
+const Twitter = require('twitter')
 const fetch = require('node-fetch')
 const store = require('./store')
-const { sendTwitter } = require('./twitter')
 const { getWeatherNow, getWeatherForecast, queryCity } = require('./heweather')
 const { formatWeather, formatLegend } = require('./format_weather')
+
+const client = new Twitter({
+  consumer_key: process.env.TWITTER_CONSUMER_KEY,
+  consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+  access_token_key: process.env.TWITTER_ACCESS_TOKEN_KEY,
+  access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET
+})
 
 const bot = new TelegramBot(process.env.TOKEN, { polling: true })
 
@@ -16,7 +23,7 @@ bot.on('callback_query', async callbackQuery => {
   if (callbackQuery.message.reply_to_message &&
       callbackQuery.from.id !== callbackQuery.message.reply_to_message.from.id) {
     await bot.answerCallbackQuery(callbackQuery.id, {
-      text: '不要！',
+      text: '不要碰那里!(｡◕ˇ﹏ˇ◕）啊, 请原谅我的失礼. 妹抖酱 参上',
       show_alert: true
     })
     return
@@ -33,7 +40,7 @@ bot.on('callback_query', async callbackQuery => {
       message_id: callbackQuery.message.message_id
     })
     await bot.editMessageText(
-      '会话已过期，请重新请求。',
+      '会话已过期, 请重新请求. 给您带来不便十分抱歉. 妹抖酱 参上',
       {
         chat_id: callbackQuery.message.chat.id,
         message_id: callbackQuery.message.message_id
@@ -54,7 +61,7 @@ bot.on('callback_query', async callbackQuery => {
       message_id: callbackQuery.message.message_id
     })
     await bot.editMessageText(
-      '妹抖酱已经把乃的城市加上惹!\\(๑╹◡╹๑)ﾉ♬',
+      '妹抖酱已经把您的城市加上惹!ଘ(੭ˊᵕˋ)੭* ੈ✩‧₊˚ 妹抖酱 参上',
       {
         chat_id: callbackQuery.message.chat.id,
         message_id: callbackQuery.message.message_id
@@ -81,7 +88,7 @@ bot.on('callback_query', async callbackQuery => {
       message_id: callbackQuery.message.message_id
     })
     await bot.editMessageText(
-      deleted ? '妹抖酱已经把乃的城市删惹!\\(๑╹◡╹๑)ﾉ♬' : '你有订阅这个城市吗(ノ｀Д´)ノ彡┻━┻',
+      deleted ? '妹抖酱已经帮您把城市删惹!๐·°(৹˃̵﹏˂̵৹)°·๐ 妹抖酱 参上' : '您有订阅这个城市吗(´｀;) ？ 妹抖酱 参上',
       {
         chat_id: callbackQuery.message.chat.id,
         message_id: callbackQuery.message.message_id
@@ -111,7 +118,7 @@ bot.on('callback_query', async callbackQuery => {
     message_id: callbackQuery.message.message_id
   })
   await bot.editMessageText(
-    callbackQuery.data !== 'cancel' ? '妹抖酱已经把乃的指示传达给主人啦!\\(๑╹◡╹๑)ﾉ♬' : '乃刚刚取消了发送(ノ｀Д´)ノ彡┻━┻',
+    callbackQuery.data !== 'cancel' ? '妹抖酱已经把您的指示传达给主人啦!\\(๑╹◡╹๑)ﾉ♬ 妹抖酱 参上' : '您刚刚取消了发送ヽ(*。>Д<)o゜ 妹抖酱 参上',
     {
       chat_id: callbackQuery.message.chat.id,
       message_id: callbackQuery.message.message_id
@@ -175,6 +182,17 @@ bot.on('message', async msg => {
     if (cmd.indexOf('@') !== -1) {
       cmd = cmd.substring(0, cmd.indexOf('@'))
     }
+
+    if (cmd === '/about') {
+      await bot.sendMessage(msg.chat.id,
+        '梨子的私人助理妹抖天气酱; 可播报天气; 私聊咱可代为主人传达消息; 裙底有[胖次](https://github.com/rikakomoe/makurabot)偷窥是变态(口嫌体直); 妹抖酱 参上',
+        {
+          parse_mode: 'Markdown'
+        }
+      )
+      return
+    }
+
     if (cmd === '/publish_2645lab' &&
       (msg.chat.id === +process.env.GM0 || msg.chat.id === +process.env.GM1)) {
       try {
@@ -206,15 +224,15 @@ bot.on('message', async msg => {
     if (cmd === '/add_city' || cmd === '/remove_city') {
       const args = msg.text
         .substr(cmdEntity.offset + cmdEntity.length).trim()
-      const sentMsg = await bot.sendMessage(msg.chat.id, '请稍候……', {
+      const sentMsg = await bot.sendMessage(msg.chat.id, '请您稍候, 妹抖酱正在帮您查询中……', {
         reply_to_message_id: msg.message_id
       })
       try {
         const result = await queryCity(args)
         await bot.editMessageText(
-          result.length === 0 ? '没有找到你查询的城市……'
-            : result.length === 1 ? '是这里吗？'
-              : '是哪一个呢？',
+          result.length === 0 ? '没有找到您查询的城市, 真的非常抱歉. 妹抖酱 参上'
+            : result.length === 1 ? '久等了, 是这里吗? 妹抖酱 参上'
+              : '久等了，是哪一个呢?  妹抖酱 参上',
           {
             chat_id: msg.chat.id,
             message_id: sentMsg.message_id
@@ -248,11 +266,11 @@ bot.on('message', async msg => {
       if (!cites || !cites.length) {
         await bot.sendMessage(
           msg.chat.id,
-          '乃还没有添加城市，用 /add_city <城市名> 来添加一个城市吧！'
+          '您还没有添加城市, 用 /add_city <城市名> 来添加一个城市吧! 妹抖酱 参上'
         )
         return
       }
-      const sentMsg = await bot.sendMessage(msg.chat.id, '请稍候……')
+      const sentMsg = await bot.sendMessage(msg.chat.id, '啊, 妹抖酱正在拉取更新……请您稍作休息')
       const cityWeathers = []
       for (const city of cites) {
         try {
@@ -300,7 +318,7 @@ bot.on('message', async msg => {
   // not me
   if (msg.chat.id !== +process.env.GM0) {
     const sentMsg = await bot.sendMessage(msg.chat.id,
-      '请回答妹抖酱的问题以完成消息发送\n\n乃将如何授权主人使用乃的消息',
+      '妹抖酱会把您的重要指示报告给主人, 请您先回答问题\n\n您将如何授权主人使用您的消息',
       {
         reply_to_message_id: msg.message_id,
         reply_markup: {
@@ -333,7 +351,27 @@ bot.on('message', async msg => {
         await defaultReply(bot, msg)
       }
     } else {
-      await sendTwitter(bot, msg)
+      // send twitter
+      if (msg.text) {
+        try {
+          const tweet = await client.post('statuses/update', { status: msg.text })
+          await bot.sendMessage(msg.chat.id,
+            `推文已发送。https://twitter.com/${tweet.user.screen_name}/status/${tweet.id_str}`,
+            { reply_to_message_id: msg.message_id }
+          )
+        } catch (err) {
+          console.error(err)
+          await bot.sendMessage(msg.chat.id,
+            `推文发送失败。${err.toString()}`,
+            { reply_to_message_id: msg.message_id }
+          )
+        }
+      } else {
+        await bot.sendMessage(msg.chat.id,
+          '暂不支持这种格式的推文。',
+          { reply_to_message_id: msg.message_id }
+        )
+      }
     }
   }
 })
