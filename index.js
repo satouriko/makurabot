@@ -100,7 +100,7 @@ bot.on('callback_query', async callbackQuery => {
   }
 
   if (cmd === '/weather' || cmd === '/tenki' || cmd === '/tianqi') {
-    const cites = data
+    const { cites, cityWeathers } = data
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
       message_id: callbackQuery.message.message_id
@@ -108,7 +108,7 @@ bot.on('callback_query', async callbackQuery => {
     await bot.answerCallbackQuery(callbackQuery.id, {
       text: '妹抖酱正在重试拉取更新, 请, 请您稍……( >﹏<。)候'
     })
-    await queryWeather(callbackQuery.message, cmd, cites)
+    await queryWeather(callbackQuery.message, cmd, cites, cityWeathers)
     return
   }
 
@@ -363,10 +363,10 @@ function pushSession (sentMsg, cmd, data) {
   store.state.session[sentMsg.chat.id + ''][sentMsg.message_id + ''] = { cmd, data }
 }
 
-async function queryWeather (sentMsg, cmd, cites) {
+async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
   const lang = cmd === '/weather' ? 'en'
     : cmd === '/tenki' ? 'ja' : 'zh'
-  const cityWeathers = []
+  if (!cityWeathers) cityWeathers = []
   let error
   let needUpdate = false
   let lastUpdateCnt = 0
@@ -401,11 +401,15 @@ async function queryWeather (sentMsg, cmd, cites) {
       const weatherDaily = await getWeatherForecast(city, 'en')
       const formattedWeather = formatWeather(weatherNow, weatherDaily)
       cityWeathers.push({
+        cid: city,
+        ok: true,
         lat: weatherNow.basic.lat,
         text: formattedWeather
       })
     } catch (err) {
       cityWeathers.push({
+        cid: city,
+        ok: false,
         lat: -Infinity,
         text: `${city}: ${err}`
       })
@@ -415,7 +419,10 @@ async function queryWeather (sentMsg, cmd, cites) {
   clearTimeout(timer)
   await update(true)
   if (error) {
-    pushSession(sentMsg, cmd, cites)
+    pushSession(sentMsg, cmd, {
+      cites: cityWeathers.filter(cw => !cw.ok).map(cw => cw.cid),
+      cityWeathers: cityWeathers.filter(cw => cw.ok)
+    })
     await bot.editMessageReplyMarkup({
       inline_keyboard: [
         [{ text: '重试', callback_data: 'retry' }]

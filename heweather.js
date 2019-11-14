@@ -2,16 +2,19 @@ const fetch = require('node-fetch')
 
 const heweatherCache = {}
 
-async function heweather6 (req) {
+async function heweather6 (req, retryCnt) {
+  if (retryCnt === undefined) retryCnt = 5
   let res
   try {
     res =
       await fetch(`https://free-api.heweather.net/s6/weather/${req}&key=${process.env.HEWEATHER_KEY}`)
   } catch (e) {
     console.error(e)
+    if (retryCnt > 0) return heweather6(req, retryCnt - 1)
     throw new Error('天气卖完了( >﹏<。) 真的很抱歉, 客人大人可以私聊我联系主人')
   }
   if (!res.ok) {
+    if (res.status >= 500 && retryCnt > 0) return heweather6(req, retryCnt - 1)
     throw new Error(res.statusText)
   }
   const json = await res.json()
