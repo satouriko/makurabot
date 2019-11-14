@@ -29,11 +29,11 @@ bot.on('callback_query', async callbackQuery => {
     return
   }
 
-  let cmd
+  let session
   if (store.state.session[callbackQuery.message.chat.id + ''] &&
     store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
   ) {
-    cmd = store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
+    session = store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
   } else {
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
@@ -48,6 +48,7 @@ bot.on('callback_query', async callbackQuery => {
     )
     return
   }
+  const { cmd, data } = session
 
   if (cmd === '/add_city') {
     if (!store.state.weather[callbackQuery.message.chat.id + '']) {
@@ -95,6 +96,19 @@ bot.on('callback_query', async callbackQuery => {
       }
     )
     await bot.answerCallbackQuery(callbackQuery.id)
+    return
+  }
+
+  if (cmd === '/weather' || cmd === '/tenki' || cmd === '/tianqi') {
+    const cites = data
+    await bot.editMessageReplyMarkup(null, {
+      chat_id: callbackQuery.message.chat.id,
+      message_id: callbackQuery.message.message_id
+    })
+    await bot.answerCallbackQuery(callbackQuery.id, {
+      text: '妹抖酱正在重试拉取更新, 请, 请您稍……( >﹏<。)候'
+    })
+    await queryWeather(callbackQuery.message, cmd, cites)
     return
   }
 
@@ -167,13 +181,6 @@ bot.on('edited_message', async msg => {
 })
 
 bot.on('message', async msg => {
-  const pushSession = (sentMsg, cmd) => {
-    if (!store.state.session[msg.chat.id + '']) {
-      store.state.session[msg.chat.id + ''] = {}
-    }
-    store.state.session[msg.chat.id + ''][sentMsg.message_id + ''] = cmd
-  }
-
   // bot command
   if (msg.entities && msg.entities.length &&
     msg.entities.findIndex(e => e.type === 'bot_command') !== -1) {
@@ -239,6 +246,7 @@ bot.on('message', async msg => {
           }
         )
         if (result.length > 0) {
+          pushSession(sentMsg, cmd)
           await bot.editMessageReplyMarkup({
             inline_keyboard: result.map(city => (
               [{ text: city.fullname, callback_data: city.cid }]
@@ -248,7 +256,6 @@ bot.on('message', async msg => {
             message_id: sentMsg.message_id
           })
         }
-        if (result.length > 0) pushSession(sentMsg, cmd)
       } catch (err) {
         console.error(err)
         await bot.editMessageText(err.message, {
@@ -260,8 +267,6 @@ bot.on('message', async msg => {
     }
 
     if (cmd === '/weather' || cmd === '/tenki' || cmd === '/tianqi') {
-      const lang = cmd === '/weather' ? 'en'
-        : cmd === '/tenki' ? 'ja' : 'zh'
       const cites = store.state.weather[msg.chat.id + '']
       if (!cites || !cites.length) {
         await bot.sendMessage(
@@ -270,33 +275,8 @@ bot.on('message', async msg => {
         )
         return
       }
-      const sentMsg = await bot.sendMessage(msg.chat.id, '啊, 妹抖酱正在拉取更新……请您稍作休息')
-      const cityWeathers = []
-      for (const city of cites) {
-        try {
-          const weatherNow = await getWeatherNow(city, lang)
-          const weatherDaily = await getWeatherForecast(city, 'en')
-          const formattedWeather = formatWeather(weatherNow, weatherDaily)
-          cityWeathers.push({
-            lat: weatherNow.basic.lat,
-            text: formattedWeather
-          })
-        } catch (err) {
-          cityWeathers.push({
-            lat: -Infinity,
-            text: `${city}: ${err}`
-          })
-        }
-      }
-      cityWeathers.sort((a, b) => (b.lat - a.lat))
-      const title = msg.chat.type !== 'private' ? '你群天气：' : '你城天气：'
-      await bot.editMessageText(
-        `${title}\n${cityWeathers.map(d => d.text).join('\n')}`,
-        {
-          chat_id: msg.chat.id,
-          message_id: sentMsg.message_id
-        }
-      )
+      const sentMsg = await bot.sendMessage(msg.chat.id, '妹抖酱正在拉取更新……请您稍作休息')
+      await queryWeather(sentMsg, cmd, cites)
       return
     }
 
@@ -375,6 +355,57 @@ bot.on('message', async msg => {
     }
   }
 })
+
+function pushSession (sentMsg, cmd, data) {
+  if (!store.state.session[sentMsg.chat.id + '']) {
+    store.state.session[sentMsg.chat.id + ''] = {}
+  }
+  store.state.session[sentMsg.chat.id + ''][sentMsg.message_id + ''] = { cmd, data }
+}
+
+async function queryWeather (sentMsg, cmd, cites) {
+  const lang = cmd === '/weather' ? 'en'
+    : cmd === '/tenki' ? 'ja' : 'zh'
+  const cityWeathers = []
+  let error
+  for (const city of cites) {
+    try {
+      const weatherNow = await getWeatherNow(city, lang)
+      const weatherDaily = await getWeatherForecast(city, 'en')
+      const formattedWeather = formatWeather(weatherNow, weatherDaily)
+      cityWeathers.push({
+        lat: weatherNow.basic.lat,
+        text: formattedWeather
+      })
+    } catch (err) {
+      cityWeathers.push({
+        lat: -Infinity,
+        text: `${city}: ${err}`
+      })
+      error = true
+    }
+  }
+  cityWeathers.sort((a, b) => (b.lat - a.lat))
+  const title = sentMsg.chat.type !== 'private' ? '你群天气：' : '你城天气：'
+  await bot.editMessageText(
+    `${title}\n${cityWeathers.map(d => d.text).join('\n')}`,
+    {
+      chat_id: sentMsg.chat.id,
+      message_id: sentMsg.message_id
+    }
+  )
+  if (error) {
+    pushSession(sentMsg, cmd, cites)
+    await bot.editMessageReplyMarkup({
+      inline_keyboard: [
+        [{ text: '重试', callback_data: 'retry' }]
+      ]
+    }, {
+      chat_id: sentMsg.chat.id,
+      message_id: sentMsg.message_id
+    })
+  }
+}
 
 async function defaultReply (bot, msg) {
   await bot.sendSticker(msg.chat.id, 'CAADBQAD2gYAAvjGxQo7kXhU-BM5fQI', {
