@@ -616,19 +616,22 @@ function formatDaily (today, yesterday, basic) {
   let important = false
   let res = `主人大人, 今天${basic.location} ${todayEmoji} ${ti}°C ~ ${ta}°C, 早上好!`
   // temperature
-  if (ta >= 25 && ti <= 15) {
-    res = `${res} 今天温差较大, 主人大人注意穿易于增减的衣服, 小心感冒!`
+  if (ta >= 28 && ti <= 15) {
+    res = `${res} 今天温差很大, 主人大人注意穿易于增减的衣服, 小心感冒!`
     important = true
   } else if (yesterday) {
     const yi = +yesterday.tmp_min; const ya = +yesterday.tmp_max
     if (ti <= 15 && ti - yi <= -5) {
       res = `${res} 今天较昨天最低气温显著降低,, 主人大人注意适当添加衣服!`
       important = true
+    } else if (ta >= 35) {
+      res = `${res} 今天最高气温很高, 主人大人注意防暑!`
+      important = true
     } else if (yi <= 15 && ti - yi >= 5) {
       res = `${res} 今天较昨天最低气温有所回升, 主人大人可适当减少衣服!`
       important = true
-    } else if (ta >= 25 && ta - ya >= 5) {
-      res = `${res} 今天较昨天最高气温显著升高, 主人大人注意防暑!`
+    } else if (ta >= 28 && ta - ya >= 5) {
+      res = `${res} 今天较昨天最高气温显著升高, 主人大人注意不要穿太多衣服!`
       important = true
     }
   }

@@ -130,6 +130,7 @@ bot.on('callback_query', async callbackQuery => {
     ) {
       store.state.weatherPush[cid].chats[callbackQuery.message.chat.id + ''].importantOnly = false
     }
+    store.save()
     const now = new Date()
     let text
     if (now <= expireAt) {
@@ -534,12 +535,15 @@ function addWeatherPushCity (cid, chatId) {
   } else {
     store.state.weatherPush[cid].chats[chatId + ''] = { importantOnly: false }
   }
+  // Note! store wasn't saved yet
+  // Make sure you save it after you call this function
 }
 
 async function weatherPush (cid) {
   if (!store.state.weatherPush[cid]) return
   if (Object.keys(store.state.weatherPush[cid].chats).length === 0) {
     delete store.state.weatherPush[cid]
+    store.save()
     return
   }
   const { chats, yesterday } = store.state.weatherPush[cid]
@@ -555,6 +559,7 @@ async function weatherPush (cid) {
       else {
         console.warn('skipped weather push due to error')
         delete store.state.weatherPush[cid].yesterday
+        store.save()
         checkAndScheduleWeatherPush(cid)
         return
       }
@@ -594,6 +599,7 @@ async function weatherPush (cid) {
     }
   }
   store.state.weatherPush[cid].yesterday = forecast.daily_forecast[0]
+  store.save()
   checkAndScheduleWeatherPush(cid)
 }
 
