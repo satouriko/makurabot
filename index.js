@@ -140,8 +140,7 @@ bot.on('callback_query', async callbackQuery => {
       text = texts[Math.floor(Math.random() * texts.length)]
     } else text = '不早了, 主人!'
     await bot.answerCallbackQuery(callbackQuery.id, {
-      text,
-      alert: true
+      text
     })
     return
   }
@@ -330,7 +329,7 @@ bot.on('message', async msg => {
       return
     }
 
-    if (cmd === '/daily') {
+    if (cmd === '/toggle_daily') {
       const on = isDailyOn(msg.chat.id)
       if (on) { // switch to off
         for (const wpCity of Object.values(store.state.weatherPush)) {
