@@ -622,7 +622,7 @@ function formatDaily (today, yesterday, basic) {
   } else if (yesterday) {
     const yi = +yesterday.tmp_min; const ya = +yesterday.tmp_max
     if (ti <= 15 && ti - yi <= -5) {
-      res = `${res} 今天较昨天最低气温显著降低,, 主人大人注意适当添加衣服!`
+      res = `${res} 今天较昨天最低气温显著降低, 主人大人注意适当添加衣服!`
       important = true
     } else if (ta >= 35) {
       res = `${res} 今天最高气温很高, 主人大人注意防暑!`

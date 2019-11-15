@@ -14,25 +14,36 @@ class Store {
       }
       store.session = {}
       if (!store.weatherPush) store.weatherPush = {} // update migration
-      fs.access(this.storePath, fs.constants.W_OK, err => {
-        if (err) {
-          console.error(`cannot write lockfile ${this.storePath}, permission denied`)
-          process.exit(1)
-        }
-      })
+      try {
+        fs.accessSync(this.storePath, fs.constants.W_OK)
+      } catch (error) {
+        console.error(`cannot write lockfile ${this.storePath}, permission denied`)
+        process.exit(1)
+      }
       this.state = store
     } else {
       store = initStore
       this.state = store
-      this.save()
+      this.saveSync()
     }
   }
 
-  save () {
+  saveSync () {
     const copied = JSON.parse(JSON.stringify(this.state))
     delete copied.session
     try {
       fs.writeFileSync(this.storePath, JSON.stringify(copied))
+    } catch (err) {
+      console.error(`cannot write lockfile ${this.storePath}, permission denied`)
+      process.exit(1)
+    }
+  }
+
+  async save () {
+    const copied = JSON.parse(JSON.stringify(this.state))
+    delete copied.session
+    try {
+      await fs.promises.writeFile(this.storePath, JSON.stringify(copied))
     } catch (err) {
       console.error(`cannot write lockfile ${this.storePath}, permission denied`)
       process.exit(1)

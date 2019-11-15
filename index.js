@@ -62,7 +62,7 @@ bot.on('callback_query', async callbackQuery => {
     if (dailyOn) {
       addWeatherPushCity(callbackQuery.data, callbackQuery.message.chat.id)
     }
-    store.save()
+    await store.save()
     delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
@@ -91,7 +91,7 @@ bot.on('callback_query', async callbackQuery => {
       if (store.state.weatherPush[callbackQuery.data]) {
         delete store.state.weatherPush[callbackQuery.data].chats[callbackQuery.message.chat.id + '']
       }
-      store.save()
+      await store.save()
     }
     delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
     await bot.editMessageReplyMarkup(null, {
@@ -130,7 +130,7 @@ bot.on('callback_query', async callbackQuery => {
     ) {
       store.state.weatherPush[cid].chats[callbackQuery.message.chat.id + ''].importantOnly = false
     }
-    store.save()
+    await store.save()
     const now = new Date()
     let text
     if (now <= expireAt) {
@@ -336,7 +336,7 @@ bot.on('message', async msg => {
         for (const wpCity of Object.values(store.state.weatherPush)) {
           delete wpCity.chats[msg.chat.id + '']
         }
-        store.save()
+        await store.save()
         await bot.sendMessage(msg.chat.id, '打扰了๐·°(৹˃̵﹏˂̵৹)°·๐非常抱歉. 妹抖酱 参上', {
           reply_to_message_id: msg.message_id
         })
@@ -350,7 +350,7 @@ bot.on('message', async msg => {
         for (const cid of store.state.weather[msg.chat.id + '']) {
           addWeatherPushCity(cid, msg.chat.id)
         }
-        store.save()
+        await store.save()
         await bot.sendMessage(msg.chat.id, '妹抖酱今后每天都会跟主人问好, 记得回复哦~(*ෆ´ ˘ `ෆ*)♡ 妹抖酱 参上', {
           reply_to_message_id: msg.message_id
         })
@@ -543,7 +543,7 @@ async function weatherPush (cid) {
   if (!store.state.weatherPush[cid]) return
   if (Object.keys(store.state.weatherPush[cid].chats).length === 0) {
     delete store.state.weatherPush[cid]
-    store.save()
+    await store.save()
     return
   }
   const { chats, yesterday } = store.state.weatherPush[cid]
@@ -559,7 +559,7 @@ async function weatherPush (cid) {
       else {
         console.warn('skipped weather push due to error')
         delete store.state.weatherPush[cid].yesterday
-        store.save()
+        await store.save()
         checkAndScheduleWeatherPush(cid)
         return
       }
@@ -599,7 +599,7 @@ async function weatherPush (cid) {
     }
   }
   store.state.weatherPush[cid].yesterday = forecast.daily_forecast[0]
-  store.save()
+  await store.save()
   checkAndScheduleWeatherPush(cid)
 }
 
