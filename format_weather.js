@@ -515,12 +515,12 @@ function formatLegend (queryEmoji, lang) {
       case 'ja':
         return `${promptEmojiList} のいずれかを入力してください`
       case 'zh':
-        return `没有找到要查询的图例，使用 ${promptEmojiList} 中的一个`
+        return `没有找到要查询的图例, 使用 ${promptEmojiList} 中的一个`
       default:
         return `What legend do you want, use one of ${promptEmojiList}`
     }
   }
-  const title = lang === 'ja' ? '凡例：' : lang === 'zh' ? '图例：' : 'Legend:'
+  const title = lang === 'ja' ? '凡例:' : lang === 'zh' ? '图例:' : 'Legend:'
   return title + '\n' + Object.values(emojiSet).map(wc => {
     const name = wc[lang] || wc.en
     let emoji = wc.emoji
@@ -614,7 +614,7 @@ function formatDaily (today, yesterday, basic) {
       : isBadWeather(cn) ? wcn.zh : isBadWeather(cd) ? wcd.zh : ''
   }
   let important = false
-  let res = `主人大人，今天${basic.location} ${todayEmoji} ${ti}°C ~ ${ta}°C, 早上好!`
+  let res = `主人大人, 今天${basic.location} ${todayEmoji} ${ti}°C ~ ${ta}°C, 早上好!`
   // temperature
   if (ta >= 25 && ti <= 15) {
     res = `${res} 今天温差较大, 主人大人注意穿易于增减的衣服, 小心感冒!`

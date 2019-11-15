@@ -153,7 +153,7 @@ bot.on('callback_query', async callbackQuery => {
     )
     await bot.sendMessage(
       +process.env.GM0,
-      `来自用户 [${callbackQuery.from.id}](tg://user?id=${callbackQuery.from.id}) ，转发授权：${callbackQuery.data}`,
+      `来自用户 [${callbackQuery.from.id}](tg://user?id=${callbackQuery.from.id}) , 转发授权: ${callbackQuery.data}`,
       {
         reply_to_message_id: fwdMsg.message_id,
         parse_mode: 'Markdown'
@@ -248,19 +248,19 @@ bot.on('message', async msg => {
         if (!res.ok) {
           console.error(res)
           await bot.sendMessage(msg.chat.id,
-            `构建请求失败。${res.statusText}`,
+            `构建请求失败. ${res.statusText}`,
             { reply_to_message_id: msg.message_id }
           )
         } else {
           await bot.sendMessage(msg.chat.id,
-            '已开始构建。',
+            '已开始构建. ',
             { reply_to_message_id: msg.message_id }
           )
         }
       } catch (err) {
         console.error(err)
         await bot.sendMessage(msg.chat.id,
-          `构建请求失败。${err.toString()}`,
+          `构建请求失败. ${err.toString()}`,
           { reply_to_message_id: msg.message_id }
         )
       } finally {
@@ -279,7 +279,7 @@ bot.on('message', async msg => {
         await bot.editMessageText(
           result.length === 0 ? '没有找到您查询的城市, 真的非常抱歉. 妹抖酱 参上'
             : result.length === 1 ? '久等了, 是这里吗? 妹抖酱 参上'
-              : '久等了，是哪一个呢?  妹抖酱 参上',
+              : '久等了, 是哪一个呢?  妹抖酱 参上',
           {
             chat_id: msg.chat.id,
             message_id: sentMsg.message_id
@@ -372,7 +372,7 @@ bot.on('message', async msg => {
         reply_markup: {
           inline_keyboard: [
             [{ text: '可以引用我的名字转发', callback_data: 'quote fwd' }],
-            [{ text: '可以转发内容，不要提我', callback_data: 'anonymous fwd' }],
+            [{ text: '可以转发内容, 不要提我', callback_data: 'anonymous fwd' }],
             [{ text: '请勿转发', callback_data: 'no fwd' }, { text: '算了', callback_data: 'cancel' }]
           ]
         }
@@ -387,7 +387,7 @@ bot.on('message', async msg => {
             await bot.sendMessage(entity.user.id, msg.text)
             await bot.sendMessage(
               msg.chat.id,
-              `已投递给 [${entity.user.id}](tg://user?id=${entity.user.id})。`,
+              `已投递给 [${entity.user.id}](tg://user?id=${entity.user.id}).`,
               {
                 reply_to_message_id: msg.message_id,
                 parse_mode: 'Markdown'
@@ -404,19 +404,19 @@ bot.on('message', async msg => {
         try {
           const tweet = await client.post('statuses/update', { status: msg.text })
           await bot.sendMessage(msg.chat.id,
-            `推文已发送。https://twitter.com/${tweet.user.screen_name}/status/${tweet.id_str}`,
+            `推文已发送. https://twitter.com/${tweet.user.screen_name}/status/${tweet.id_str}`,
             { reply_to_message_id: msg.message_id }
           )
         } catch (err) {
           console.error(err)
           await bot.sendMessage(msg.chat.id,
-            `推文发送失败。${err.toString()}`,
+            `推文发送失败. ${err.toString()}`,
             { reply_to_message_id: msg.message_id }
           )
         }
       } else {
         await bot.sendMessage(msg.chat.id,
-          '暂不支持这种格式的推文。',
+          '暂不支持这种格式的推文.',
           { reply_to_message_id: msg.message_id }
         )
       }
@@ -444,7 +444,7 @@ async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
   const update = async (isFinal) => {
     if (!isFinal && cityWeathers.length === lastUpdateCnt) return
     cityWeathers.sort((a, b) => (b.lat - a.lat))
-    const title = sentMsg.chat.type !== 'private' ? '你群天气：' : '你城天气：'
+    const title = sentMsg.chat.type !== 'private' ? '你群天气:' : '你城天气:'
     let result = `${title}\n${cityWeathers.map(d => d.text).join('\n')}`
     if (!isFinal) result = `${result}\n妹抖酱仍在拉取更新……感谢您的耐心(´;ω;)`
     await bot.editMessageText(
