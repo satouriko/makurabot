@@ -1,3 +1,4 @@
+const AbortController = require('abort-controller')
 const fetch = require('node-fetch')
 
 const heweatherCache = {}
@@ -5,22 +6,37 @@ const heweatherCache = {}
 async function heweather6 (req, retryCnt) {
   if (retryCnt === undefined) retryCnt = 5
   let res
+  const controller = new AbortController()
+  const timeout = setTimeout(
+    () => { controller.abort() },
+    10000
+  )
   try {
-    res =
-      await fetch(`https://free-api.heweather.net/s6/weather/${req}&key=${process.env.HEWEATHER_KEY}`)
+    res = await fetch(
+        `https://free-api.heweather.net/s6/weather/${req}&key=${process.env.HEWEATHER_KEY}`,
+        { signal: controller.signal }
+    )
+    clearTimeout(timeout)
   } catch (e) {
     console.error(e)
+    if (e.name === 'AbortError') {
+      if (retryCnt > 0) return heweather6(req, retryCnt > 2 ? 2 : retryCnt - 1)
+      throw new Error('抱歉( >﹏<。)天气网络超时')
+    }
     if (retryCnt > 0) return heweather6(req, retryCnt - 1)
-    throw new Error('天气卖完了( >﹏<。) 真的很抱歉, 客人大人可以私聊我联系主人')
+    throw new Error('抱歉( >﹏<。)天气卖完了')
+  } finally {
+    clearTimeout(timeout)
   }
   if (!res.ok) {
+    console.error(res.statusText)
     if (res.status >= 500 && retryCnt > 0) return heweather6(req, retryCnt - 1)
     throw new Error(res.statusText)
   }
   const json = await res.json()
   if (!json.HeWeather6) {
     console.error(json)
-    throw new Error('这是一个意外( >﹏<。) 真的很抱歉, 客人大人可以私聊我联系主人')
+    throw new Error('抱歉( >﹏<。)这是一个意外')
   }
   if (json.HeWeather6[0].status !== 'ok') {
     throw new Error(json.HeWeather6[0].status)

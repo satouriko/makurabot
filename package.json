@@ -5,6 +5,7 @@
     "format": "standard --fix"
   },
   "dependencies": {
+    "abort-controller": "^3.0.0",
     "node-fetch": "^2.6.0",
     "node-telegram-bot-api": "^0.30.0",
     "twitter": "^1.7.1"

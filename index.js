@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api')
 const Twitter = require('twitter')
+const AbortController = require('abort-controller')
 const fetch = require('node-fetch')
 const store = require('./store')
 const { getWeatherNow, getWeatherForecast, queryCity } = require('./heweather')
@@ -202,10 +203,15 @@ bot.on('message', async msg => {
 
     if (cmd === '/publish_2645lab' &&
       (msg.chat.id === +process.env.GM0 || msg.chat.id === +process.env.GM1)) {
+      const controller = new AbortController()
+      const timeout = setTimeout(
+        () => { controller.abort() },
+        10000
+      )
       try {
         const res = await fetch(
           process.env.NETLIFY_WEBHOOK_2645LAB,
-          { method: 'POST', body: JSON.stringify({}) }
+          { method: 'POST', body: JSON.stringify({}), signal: controller.signal }
         )
         if (!res.ok) {
           console.error(res)
@@ -225,6 +231,8 @@ bot.on('message', async msg => {
           `构建请求失败。${err.toString()}`,
           { reply_to_message_id: msg.message_id }
         )
+      } finally {
+        clearTimeout(timeout)
       }
       return
     }
