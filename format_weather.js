@@ -1,4 +1,5 @@
 const { moonPhase, moonPhaseLevel } = require('./moon_phase')
+const { toISOTZ, toTZOffset } = require('./time')
 
 const weatherConditions = {}
 
@@ -528,24 +529,19 @@ function formatLegend (queryEmoji, lang) {
   }).join('\n')
 }
 
-function formatWeather (current, daily) {
+function getWeatherCondition (code) {
+  const keyMap = {
+    1: 'cloud', 2: 'wind', 3: 'rain', 4: 'snow', 5: 'fog', 9: 'others'
+  }
+  return weatherConditions[keyMap[code[0]]][code]
+}
+
+function formatWeather (current, forecast) {
   try {
-    const code = current.now.cond_code
-    const keyMap = {
-      1: 'cloud', 2: 'wind', 3: 'rain', 4: 'snow', 5: 'fog', 9: 'others'
-    }
-    const wc = weatherConditions[keyMap[code[0]]][code]
+    const wc = getWeatherCondition(current.now.cond_code)
     let emoji = wc.emoji
-    if (daily && daily.daily_forecast && daily.daily_forecast.length) {
-      const today = daily.daily_forecast[0]
-      const toISOTZ = (tzStr) => {
-        const decimal = (+tzStr / 100).toFixed(4)
-        const str = `${decimal < 0 ? '-' : '+'}${decimal.substr(decimal.indexOf('.') + 1)}`
-        return str === '+0000' || str === '-0000' ? 'Z' : str
-      }
-      const toTZOffset = (tzStr) => {
-        return -60 * +tzStr
-      }
+    if (forecast && forecast.daily_forecast && forecast.daily_forecast.length) {
+      const today = forecast.daily_forecast[0]
       const time2Date = (timeStr) => {
         return new Date(`${today.date}T${timeStr}${toISOTZ(current.basic.tz)}`)
       }
@@ -579,11 +575,82 @@ function formatWeather (current, daily) {
     return `${current.basic.location} ${emoji} ${current.now.tmp}°C`
   } catch (err) {
     console.error(err)
-    return '妹抖酱坏掉了. 这都是我的错, 客人大人不要责怪她们( >﹏<。)'
+    return '妹抖酱坏掉了. 这都是我的错, 主人大人不要责怪她们( >﹏<。)'
+  }
+}
+
+function formatDaily (today, yesterday, basic) {
+  const cd = today.cond_code_d; const cn = today.cond_code_n
+  const ti = +today.tmp_min; const ta = +today.tmp_max
+  const wcd = getWeatherCondition(cd); const wcn = getWeatherCondition(cn)
+  const isBadWeather = (codeStr) => {
+    const code = +codeStr
+    return code >= 205
+  }
+  const isRain = (codeStr) => {
+    const code = +codeStr
+    return (code >= 300 && code <= 399) || // 雨
+      (code >= 404 && code <= 406) || // 雨夹雪
+      (code >= 400 && code <= 499 && ta > 0) // 南方的雪
+  }
+  const isPollution = (codeStr) => {
+    const code = +codeStr
+    return code >= 502 && code <= 515
+  }
+  const isExtremeWeather = (codeStr) => {
+    const code = +codeStr
+    return ((code >= 209 && code <= 213) || // 风暴
+      (code >= 311 && code <= 312) || // 暴雨
+      (code >= 317 && code <= 318) || // 暴雨
+      (code >= 507 && code <= 508) // 沙尘暴
+    )
+  }
+  // greeting
+  let todayEmoji = wcd.emoji
+  let badWeatherText = ''
+  if (cd !== cn) {
+    todayEmoji = `${todayEmoji}\u27a1\ufe0f${wcn.emoji}`
+    badWeatherText = isBadWeather(cd) && isBadWeather(cn) ? `${wcd.zh}转${wcn.zh}`
+      : isBadWeather(cn) ? wcn.zh : isBadWeather(cd) ? wcd.zh : ''
+  }
+  let important = false
+  let res = `主人大人，今天${basic.location} ${todayEmoji} ${ti}°C ~ ${ta}°C, 早上好!`
+  // temperature
+  if (ta >= 25 && ti <= 15) {
+    res = `${res} 今天温差较大, 主人大人注意穿易于增减的衣服, 小心感冒!`
+    important = true
+  } else if (yesterday) {
+    const yi = +yesterday.tmp_min; const ya = +yesterday.tmp_max
+    if (ti <= 15 && ti - yi <= -5) {
+      res = `${res} 今天较昨天最低气温显著降低,, 主人大人注意适当添加衣服!`
+      important = true
+    } else if (yi <= 15 && ti - yi >= 5) {
+      res = `${res} 今天较昨天最低气温有所回升, 主人大人可适当减少衣服!`
+      important = true
+    } else if (ta >= 25 && ta - ya >= 5) {
+      res = `${res} 今天较昨天最高气温显著升高, 主人大人注意防暑!`
+      important = true
+    }
+  }
+  // weather
+  if (isExtremeWeather(cd) || isExtremeWeather(cn)) {
+    res = `${res} 今天天气极端恶劣, 有${badWeatherText}, 请主人大人尽量避免出行, 如需出行, 请务必注意安全!`
+    important = true
+  } else if (isRain(cd) || isRain(cn)) {
+    res = `${res} 今天有${badWeatherText}, 主人大人出门记得带伞!`
+    important = true
+  } else if (isPollution(cd) || isPollution(cn)) {
+    res = `${res} 今天有${badWeatherText}, 主人大人请尽量在室内活动!`
+    important = true
+  }
+  return {
+    text: res,
+    important
   }
 }
 
 module.exports = {
   formatLegend,
-  formatWeather
+  formatWeather,
+  formatDaily
 }

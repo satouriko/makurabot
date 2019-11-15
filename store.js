@@ -3,7 +3,7 @@ const fs = require('fs')
 class Store {
   constructor () {
     let store
-    const initStore = { weather: {}, session: {} }
+    const initStore = { weather: {}, weatherPush: {}, session: {} }
     this.storePath = '/data/store.json'
     if (fs.existsSync(this.storePath)) {
       try {
@@ -13,6 +13,7 @@ class Store {
         store = initStore
       }
       store.session = {}
+      if (!store.weatherPush) store.weatherPush = {} // update migration
       fs.access(this.storePath, fs.constants.W_OK, err => {
         if (err) {
           console.error(`cannot write lockfile ${this.storePath}, permission denied`)

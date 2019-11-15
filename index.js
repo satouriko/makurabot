@@ -3,8 +3,10 @@ const Twitter = require('twitter')
 const AbortController = require('abort-controller')
 const fetch = require('node-fetch')
 const store = require('./store')
+const { toISOTZ } = require('./time')
 const { getWeatherNow, getWeatherForecast, queryCity } = require('./heweather')
-const { formatWeather, formatLegend } = require('./format_weather')
+const { formatWeather, formatLegend, formatDaily } = require('./format_weather')
+const { scheduleDateTime } = require('./schedule')
 
 const client = new Twitter({
   consumer_key: process.env.TWITTER_CONSUMER_KEY,
@@ -56,6 +58,10 @@ bot.on('callback_query', async callbackQuery => {
       store.state.weather[callbackQuery.message.chat.id + ''] = []
     }
     store.state.weather[callbackQuery.message.chat.id + ''].push(callbackQuery.data)
+    const dailyOn = isDailyOn(callbackQuery.message.chat.id)
+    if (dailyOn) {
+      addWeatherPushCity(callbackQuery.data, callbackQuery.message.chat.id)
+    }
     store.save()
     delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
     await bot.editMessageReplyMarkup(null, {
@@ -82,6 +88,9 @@ bot.on('callback_query', async callbackQuery => {
       store.state.weather[callbackQuery.message.chat.id + ''] =
         store.state.weather[callbackQuery.message.chat.id + ''].filter(cid => cid !== callbackQuery.data)
       deleted = true
+      if (store.state.weatherPush[callbackQuery.data]) {
+        delete store.state.weatherPush[callbackQuery.data].chats[callbackQuery.message.chat.id + '']
+      }
       store.save()
     }
     delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
@@ -110,6 +119,30 @@ bot.on('callback_query', async callbackQuery => {
       text: '妹抖酱正在重试拉取更新, 请, 请您稍……( >﹏<。)候'
     })
     await queryWeather(callbackQuery.message, cmd, cites, cityWeathers)
+    return
+  }
+
+  if (cmd === 'weather_push') {
+    const { cid, expireAt } = data
+    if (
+      store.state.weatherPush[cid] &&
+      store.state.weatherPush[cid].chats[callbackQuery.message.chat.id + '']
+    ) {
+      store.state.weatherPush[cid].chats[callbackQuery.message.chat.id + ''].importantOnly = false
+    }
+    const now = new Date()
+    let text
+    if (now <= expireAt) {
+      const texts = [
+        '主人早!', '主人早上好!', '主人早安!', '主人早~', '主人早喵~', '主人早上好喵~', '主人早安喵~',
+        '主人早安~', '主人早上好~', '主人早喵!', '主人早上好喵~'
+      ]
+      text = texts[Math.floor(Math.random() * texts.length)]
+    } else text = '不早了, 主人!'
+    await bot.answerCallbackQuery(callbackQuery.id, {
+      text,
+      alert: true
+    })
     return
   }
 
@@ -297,6 +330,34 @@ bot.on('message', async msg => {
       return
     }
 
+    if (cmd === '/daily') {
+      const on = isDailyOn(msg.chat.id)
+      if (on) { // switch to off
+        for (const wpCity of Object.values(store.state.weatherPush)) {
+          delete wpCity.chats[msg.chat.id + '']
+        }
+        store.save()
+        await bot.sendMessage(msg.chat.id, '打扰了๐·°(৹˃̵﹏˂̵৹)°·๐非常抱歉. 妹抖酱 参上', {
+          reply_to_message_id: msg.message_id
+        })
+      } else { // switch to on
+        if (!store.state.weather[msg.chat.id + ''] || store.state.weather[msg.chat.id + ''].length === 0) {
+          await bot.sendMessage(msg.chat.id, '您还没有添加城市, 用 /add_city <城市名> 来添加一个城市吧! 妹抖酱 参上', {
+            reply_to_message_id: msg.message_id
+          })
+          return
+        }
+        for (const cid of store.state.weather[msg.chat.id + '']) {
+          addWeatherPushCity(cid, msg.chat.id)
+        }
+        store.save()
+        await bot.sendMessage(msg.chat.id, '妹抖酱今后每天都会跟主人问好, 记得回复哦~(*ෆ´ ˘ `ෆ*)♡ 妹抖酱 参上', {
+          reply_to_message_id: msg.message_id
+        })
+      }
+      return
+    }
+
     if (msg.chat.type === 'private') await defaultReply(bot, msg)
     return
   }
@@ -400,7 +461,7 @@ async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
   while (retryCnt > 0 && cites.length > 0) {
     error = false
     const retryCites = []
-    for (const city of cites) {
+    for (const cid of cites) {
       if (needUpdate) {
         needUpdate = false
         await update(false)
@@ -409,24 +470,24 @@ async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
         }, 10000)
       }
       try {
-        const weatherNow = await getWeatherNow(city, lang)
-        const weatherDaily = await getWeatherForecast(city, 'en')
-        const formattedWeather = formatWeather(weatherNow, weatherDaily)
+        const weatherNow = await getWeatherNow(cid, lang)
+        const weatherForecast = await getWeatherForecast(cid, 'zh')
+        const formattedWeather = formatWeather(weatherNow, weatherForecast)
         cityWeathers.push({
-          cid: city,
+          cid,
           ok: true,
           lat: weatherNow.basic.lat,
           text: formattedWeather
         })
       } catch (err) {
         if (retryCnt > 1 && err.name === 'TimeoutError') {
-          retryCites.push(city)
+          retryCites.push(cid)
         } else {
           cityWeathers.push({
-            cid: city,
+            cid,
             ok: false,
             lat: -Infinity,
-            text: `${city}: ${err}`
+            text: `${cid}: ${err}`
           })
         }
         error = true
@@ -451,6 +512,113 @@ async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
       message_id: sentMsg.message_id
     })
   }
+}
+
+function isDailyOn (chatId) {
+  let on = false
+  for (const wpCity of Object.values(store.state.weatherPush)) {
+    if (Object.keys(wpCity.chats).indexOf(chatId + '') !== -1) {
+      on = true
+    }
+  }
+  return on
+}
+
+function addWeatherPushCity (cid, chatId) {
+  if (!store.state.weatherPush[cid]) {
+    store.state.weatherPush[cid] = {
+      chats: {
+        [chatId + '']: { importantOnly: false }
+      }
+    }
+    checkAndScheduleWeatherPush(cid)
+  } else {
+    store.state.weatherPush[cid].chats[chatId + ''] = { importantOnly: false }
+  }
+}
+
+async function weatherPush (cid) {
+  if (!store.state.weatherPush[cid]) return
+  if (Object.keys(store.state.weatherPush[cid].chats).length === 0) {
+    delete store.state.weatherPush[cid]
+    return
+  }
+  const { chats, yesterday } = store.state.weatherPush[cid]
+  let forecast
+  let retryCnt = 4
+  while (true) {
+    try {
+      forecast = await getWeatherForecast(cid, 'zh')
+      break
+    } catch (err) {
+      console.error(err)
+      if (retryCnt > 0 && err.name === 'TimeoutError') retryCnt--
+      else {
+        console.warn('skipped weather push due to error')
+        delete store.state.weatherPush[cid].yesterday
+        checkAndScheduleWeatherPush(cid)
+        return
+      }
+    }
+  }
+  const { text, important } = formatDaily(forecast.daily_forecast[0], yesterday, forecast.basic)
+  const expireAt = new Date(`${forecast.daily_forecast[0].date}T12:00${toISOTZ(forecast.basic.tz)}`)
+  for (const chatId of Object.keys(chats)) {
+    if (chats[chatId].importantOnly && !important) continue
+    try {
+      const sentMsg = await bot.sendMessage(chatId,
+        text,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '早', callback_data: "mornin'" }]
+            ]
+          }
+        }
+      )
+      if (store.state.session[chatId]) {
+        for (const msgId of Object.keys(store.state.session[chatId])) {
+          if (store.state.session[chatId][msgId].cmd === 'weather_push' &&
+            store.state.session[chatId][msgId].data.cid === cid) {
+            await bot.editMessageReplyMarkup(null, {
+              chat_id: chatId,
+              message_id: msgId
+            })
+            delete store.state.session[chatId][msgId]
+          }
+        }
+      }
+      pushSession(sentMsg, 'weather_push', { cid: cid, expireAt })
+      chats[chatId].importantOnly = true
+    } catch (err) {
+      console.error(err)
+    }
+  }
+  store.state.weatherPush[cid].yesterday = forecast.daily_forecast[0]
+  checkAndScheduleWeatherPush(cid)
+}
+
+async function checkAndScheduleWeatherPush (cid) {
+  let forecast
+  try {
+    forecast = await getWeatherForecast(cid, 'zh')
+  } catch (err) {
+    setTimeout(() => checkAndScheduleWeatherPush(cid), 60000)
+    return
+  }
+  const today = forecast.daily_forecast[0]
+  const tomorrow = forecast.daily_forecast[1]
+  const srtd = new Date(`${today.date}T${today.sr}${toISOTZ(forecast.basic.tz)}`)
+  const now = new Date()
+  if (now < srtd) {
+    scheduleDateTime(today.date, today.sr, forecast.basic.tz, () => weatherPush(cid))
+  } else {
+    scheduleDateTime(tomorrow.date, tomorrow.sr, forecast.basic.tz, () => weatherPush(cid))
+  }
+}
+
+for (const cid of Object.keys(store.state.weatherPush)) {
+  checkAndScheduleWeatherPush(cid)
 }
 
 async function defaultReply (bot, msg) {

@@ -1,5 +1,6 @@
 const AbortController = require('abort-controller')
 const fetch = require('node-fetch')
+const { toISOTZ } = require('./time')
 
 const heweatherCache = {}
 
@@ -70,11 +71,6 @@ async function now (loc, lang) {
 }
 
 async function forecast (loc, lang) {
-  const toISOTZ = (tzStr) => {
-    const decimal = (+tzStr / 100).toFixed(4)
-    const str = `${decimal < 0 ? '-' : '+'}${decimal.substr(decimal.indexOf('.') + 1)}`
-    return str === '+0000' || str === '-0000' ? 'Z' : str
-  }
   const cache = heweatherCache[`forecast://${loc}`]
   const basicCache = heweatherCache[`basic://${loc},${lang}`]
   if (cache && basicCache) {
@@ -90,6 +86,14 @@ async function forecast (loc, lang) {
   heweatherCache[`forecast://${loc}`] = result
   heweatherCache[`basic://${loc},${lang}`] = result.basic
   return result
+}
+
+async function basic (loc, lang) {
+  const basicCache = heweatherCache[`basic://${loc},${lang}`]
+  if (basicCache) return basicCache
+  const result = await getFirst(`forecast?location=${encodeURIComponent(loc)}&lang=${encodeURIComponent(lang)}`)
+  heweatherCache[`basic://${loc},${lang}`] = result.basic
+  return result.basic
 }
 
 async function queryCity (loc) {
@@ -121,5 +125,6 @@ async function queryCity (loc) {
 module.exports = {
   getWeatherNow: now,
   getWeatherForecast: forecast,
+  getCityBasic: basic,
   queryCity
 }
