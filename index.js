@@ -396,33 +396,44 @@ async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
     )
     lastUpdateCnt = cityWeathers.length
   }
-  for (const city of cites) {
-    if (needUpdate) {
-      needUpdate = false
-      await update(false)
-      timer = setTimeout(() => {
-        needUpdate = true
-      }, 10000)
+  let retryCnt = 5
+  while (retryCnt > 0 && cites.length > 0) {
+    error = false
+    const retryCites = []
+    for (const city of cites) {
+      if (needUpdate) {
+        needUpdate = false
+        await update(false)
+        timer = setTimeout(() => {
+          needUpdate = true
+        }, 10000)
+      }
+      try {
+        const weatherNow = await getWeatherNow(city, lang)
+        const weatherDaily = await getWeatherForecast(city, 'en')
+        const formattedWeather = formatWeather(weatherNow, weatherDaily)
+        cityWeathers.push({
+          cid: city,
+          ok: true,
+          lat: weatherNow.basic.lat,
+          text: formattedWeather
+        })
+      } catch (err) {
+        if (retryCnt > 1 && err.name === 'TimeoutError') {
+          retryCites.push(city)
+        } else {
+          cityWeathers.push({
+            cid: city,
+            ok: false,
+            lat: -Infinity,
+            text: `${city}: ${err}`
+          })
+        }
+        error = true
+      }
     }
-    try {
-      const weatherNow = await getWeatherNow(city, lang)
-      const weatherDaily = await getWeatherForecast(city, 'en')
-      const formattedWeather = formatWeather(weatherNow, weatherDaily)
-      cityWeathers.push({
-        cid: city,
-        ok: true,
-        lat: weatherNow.basic.lat,
-        text: formattedWeather
-      })
-    } catch (err) {
-      cityWeathers.push({
-        cid: city,
-        ok: false,
-        lat: -Infinity,
-        text: `${city}: ${err}`
-      })
-      error = true
-    }
+    cites = retryCites
+    retryCnt--
   }
   clearTimeout(timer)
   await update(true)

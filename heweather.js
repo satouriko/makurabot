@@ -16,15 +16,17 @@ async function heweather6 (req, retryCnt) {
         `https://free-api.heweather.net/s6/weather/${req}&key=${process.env.HEWEATHER_KEY}`,
         { signal: controller.signal }
     )
-    clearTimeout(timeout)
-  } catch (e) {
-    console.error(e)
-    if (e.name === 'AbortError') {
-      if (retryCnt > 0) return heweather6(req, retryCnt > 2 ? 2 : retryCnt - 1)
-      throw new Error('抱歉( >﹏<。)天气网络超时')
+  } catch (err) {
+    console.error(err)
+    if (err.name === 'AbortError') {
+      const throwErr = new Error('抱歉( >﹏<。)天气网络超时')
+      throwErr.name = 'TimeoutError'
+      throw throwErr
     }
     if (retryCnt > 0) return heweather6(req, retryCnt - 1)
-    throw new Error('抱歉( >﹏<。)天气卖完了')
+    const throwErr = new Error('抱歉( >﹏<。)天气卖完了')
+    throwErr.name = 'NetworkError'
+    throw throwErr
   } finally {
     clearTimeout(timeout)
   }
