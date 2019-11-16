@@ -1,6 +1,7 @@
 const AbortController = require('abort-controller')
 const fetch = require('node-fetch')
 const { toISOTZ } = require('./time')
+const statistic = require('./statistic')
 
 const heweatherCache = {}
 
@@ -18,7 +19,7 @@ async function heweather6 (req, retryCnt) {
         { signal: controller.signal }
     )
   } catch (err) {
-    console.error(err)
+    statistic.spank(err)
     if (err.name === 'AbortError') {
       const throwErr = new Error('抱歉( >﹏<。)天气网络超时')
       throwErr.name = 'TimeoutError'
@@ -32,16 +33,17 @@ async function heweather6 (req, retryCnt) {
     clearTimeout(timeout)
   }
   if (!res.ok) {
-    console.error(res.statusText)
+    statistic.spank(res.statusText)
     if (res.status >= 500 && retryCnt > 0) return heweather6(req, retryCnt - 1)
     throw new Error(res.statusText)
   }
   const json = await res.json()
   if (!json.HeWeather6) {
-    console.error(json)
+    statistic.spank(json)
     throw new Error('抱歉( >﹏<。)这是一个意外')
   }
   if (json.HeWeather6[0].status !== 'ok') {
+    statistic.spank(json.HeWeather6[0].status)
     throw new Error(json.HeWeather6[0].status)
   }
   return json.HeWeather6

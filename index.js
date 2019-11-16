@@ -3,6 +3,7 @@ const Twitter = require('twitter')
 const AbortController = require('abort-controller')
 const fetch = require('node-fetch')
 const store = require('./store')
+const statistic = require('./statistic')
 const { toISOTZ } = require('./time')
 const { getWeatherNow, getWeatherForecast, queryCity } = require('./heweather')
 const { formatWeather, formatLegend, formatDaily } = require('./format_weather')
@@ -226,9 +227,10 @@ bot.on('message', async msg => {
 
     if (cmd === '/about') {
       await bot.sendMessage(msg.chat.id,
-        '梨子的私人助理妹抖天气酱; 可播报天气; 私聊咱可代为主人传达消息; 裙底有[胖次](https://github.com/rikakomoe/makurabot)偷窥是变态(口嫌体直); 妹抖酱 参上',
+        `梨子的私人助理妹抖天气酱; 可播报天气; 私聊咱可代为主人传达消息; 裙底有[胖次](https://github.com/rikakomoe/makurabot)偷窥是变态(口嫌体直); ${statistic} 妹抖酱 参上`,
         {
-          parse_mode: 'Markdown'
+          parse_mode: 'Markdown',
+          disable_web_page_preview: true
         }
       )
       return
@@ -247,7 +249,7 @@ bot.on('message', async msg => {
           { method: 'POST', body: JSON.stringify({}), signal: controller.signal }
         )
         if (!res.ok) {
-          console.error(res)
+          statistic.spank(res)
           await bot.sendMessage(msg.chat.id,
             `构建请求失败. ${res.statusText}`,
             { reply_to_message_id: msg.message_id }
@@ -259,7 +261,7 @@ bot.on('message', async msg => {
           )
         }
       } catch (err) {
-        console.error(err)
+        statistic.spank(err)
         await bot.sendMessage(msg.chat.id,
           `构建请求失败. ${err.toString()}`,
           { reply_to_message_id: msg.message_id }
@@ -275,31 +277,32 @@ bot.on('message', async msg => {
       const sentMsg = await bot.sendMessage(msg.chat.id, '请您稍候, 妹抖酱正在帮您查询中……', {
         reply_to_message_id: msg.message_id
       })
+      let result
       try {
-        const result = await queryCity(args)
-        await bot.editMessageText(
-          result.length === 0 ? '没有找到您查询的城市, 真的非常抱歉. 妹抖酱 参上'
-            : result.length === 1 ? '久等了, 是这里吗? 妹抖酱 参上'
-              : '久等了, 是哪一个呢?  妹抖酱 参上',
-          {
-            chat_id: msg.chat.id,
-            message_id: sentMsg.message_id
-          }
-        )
-        if (result.length > 0) {
-          pushSession(sentMsg, cmd)
-          await bot.editMessageReplyMarkup({
-            inline_keyboard: result.map(city => (
-              [{ text: city.fullname, callback_data: city.cid }]
-            ))
-          }, {
-            chat_id: msg.chat.id,
-            message_id: sentMsg.message_id
-          })
-        }
+        result = await queryCity(args)
       } catch (err) {
-        console.error(err)
         await bot.editMessageText(err.message, {
+          chat_id: msg.chat.id,
+          message_id: sentMsg.message_id
+        })
+        return
+      }
+      await bot.editMessageText(
+        result.length === 0 ? '没有找到您查询的城市, 真的非常抱歉. 妹抖酱 参上'
+          : result.length === 1 ? '久等了, 是这里吗? 妹抖酱 参上'
+            : '久等了, 是哪一个呢?  妹抖酱 参上',
+        {
+          chat_id: msg.chat.id,
+          message_id: sentMsg.message_id
+        }
+      )
+      if (result.length > 0) {
+        pushSession(sentMsg, cmd)
+        await bot.editMessageReplyMarkup({
+          inline_keyboard: result.map(city => (
+            [{ text: city.fullname, callback_data: city.cid }]
+          ))
+        }, {
           chat_id: msg.chat.id,
           message_id: sentMsg.message_id
         })
@@ -402,19 +405,21 @@ bot.on('message', async msg => {
     } else {
       // send twitter
       if (msg.text) {
+        let tweet
         try {
-          const tweet = await client.post('statuses/update', { status: msg.text })
-          await bot.sendMessage(msg.chat.id,
-            `推文已发送. https://twitter.com/${tweet.user.screen_name}/status/${tweet.id_str}`,
-            { reply_to_message_id: msg.message_id }
-          )
+          tweet = await client.post('statuses/update', { status: msg.text })
         } catch (err) {
-          console.error(err)
+          statistic.spank(err)
           await bot.sendMessage(msg.chat.id,
             `推文发送失败. ${err.toString()}`,
             { reply_to_message_id: msg.message_id }
           )
+          return
         }
+        await bot.sendMessage(msg.chat.id,
+          `推文已发送. https://twitter.com/${tweet.user.screen_name}/status/${tweet.id_str}`,
+          { reply_to_message_id: msg.message_id }
+        )
       } else {
         await bot.sendMessage(msg.chat.id,
           '暂不支持这种格式的推文.',
@@ -554,7 +559,6 @@ async function weatherPush (cid) {
       forecast = await getWeatherForecast(cid, 'zh')
       break
     } catch (err) {
-      console.error(err)
       if (retryCnt > 0 && err.name === 'TimeoutError') retryCnt--
       else {
         console.warn('skipped weather push due to error')
@@ -595,7 +599,7 @@ async function weatherPush (cid) {
       pushSession(sentMsg, 'weather_push', { cid: cid, expireAt })
       chats[chatId].importantOnly = true
     } catch (err) {
-      console.error(err)
+      statistic.spank(err)
     }
   }
   store.state.weatherPush[cid].yesterday = forecast.daily_forecast[0]

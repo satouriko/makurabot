@@ -16,7 +16,7 @@ class Store {
       if (!store.weatherPush) store.weatherPush = {} // update migration
       try {
         fs.accessSync(this.storePath, fs.constants.W_OK)
-      } catch (error) {
+      } catch (err) {
         console.error(`cannot write lockfile ${this.storePath}, permission denied`)
         process.exit(1)
       }

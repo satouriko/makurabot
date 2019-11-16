@@ -1,5 +1,6 @@
 const { moonPhase, moonPhaseLevel } = require('./moon_phase')
 const { toISOTZ, toTZOffset } = require('./time')
+const statistic = require('./statistic')
 
 const weatherConditions = {}
 
@@ -574,7 +575,7 @@ function formatWeather (current, forecast) {
     }
     return `${current.basic.location} ${emoji} ${current.now.tmp}°C`
   } catch (err) {
-    console.error(err)
+    statistic.spank(err)
     return '妹抖酱坏掉了. 这都是我的错, 主人大人不要责怪她们( >﹏<。)'
   }
 }
