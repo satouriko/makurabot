@@ -618,6 +618,9 @@ async function checkAndScheduleWeatherPush (cid) {
   if (now < srtd) {
     scheduleDateTime(today.date, today.sr, forecast.basic.tz, () => weatherPush(cid))
   } else {
+    // today is the yesterday of tomorrow
+    store.state.weatherPush[cid].yesterday = today
+    await store.save()
     scheduleDateTime(tomorrow.date, tomorrow.sr, forecast.basic.tz, () => weatherPush(cid))
   }
 }
