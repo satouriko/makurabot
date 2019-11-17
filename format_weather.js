@@ -612,18 +612,24 @@ function formatDaily (today, yesterday, basic) {
     : isBadWeather(cn) ? wcn.zh : isBadWeather(cd) ? wcd.zh : ''
   let important = false
   let res = `主人大人, 今天${basic.location} ${todayEmoji} ${ti}°C ~ ${ta}°C, 早上好!`
+  const withWind = +(today.wind_spd) >= 29
+  const withStrongWind = +(today.wind_spd) >= 39
   // temperature
   // 宜人温度 16~24
   if (ta >= 28 && ti <= 12) {
     res = `${res} 今天温差很大, 主人要注意穿易于增减的衣服, 小心感冒!`
     important = true
+  } else if (ta >= 35) {
+    res = `${res} 今天气温很高, 主人要注意防暑!`
+    important = true
   } else if (yesterday) {
     const yi = +yesterday.tmp_min; const ya = +yesterday.tmp_max
     if ((ti <= 12 && ti - yi <= -5) || (ta <= 12 && ta - ya <= -5)) {
-      res = `${res} 今天较昨天气温显著降低, 主人要注意适当添加衣服!`
+      res = withWind ? `${res} 今天较昨天气温显著降低, 并且风比较大, 主人要注意适当添加衣服!`
+        : `${res} 今天较昨天气温显著降低, 主人要注意适当添加衣服!`
       important = true
-    } else if (ta >= 35) {
-      res = `${res} 今天气温很高, 主人要注意防暑!`
+    } else if (ti <= 12 && withWind) {
+      res = `${res} 今天风比较大, 主人要注意适当添加衣服!`
       important = true
     } else if ((yi <= 12 && ti - yi >= 5) || (ya <= 12 && ta - ya >= 5)) {
       res = `${res} 今天较昨天气温有所回升, 主人可适当减少衣服!`
@@ -632,6 +638,9 @@ function formatDaily (today, yesterday, basic) {
       res = `${res} 今天较昨天气温显著升高, 主人注意不要穿太多衣服!`
       important = true
     }
+  } else if (ti <= 12 && withWind) {
+    res = `${res} 今天风比较大, 主人要注意适当添加衣服!`
+    important = true
   }
   // weather
   const meanwhile = important ? '同时' : ''
@@ -640,7 +649,8 @@ function formatDaily (today, yesterday, basic) {
     res = `${res} ${meanwhile}今天天气极端恶劣, 有${badWeatherText}, 请主人尽量避免出行, 如需出行, 请务必注意安全!`
     important = true
   } else if (isRain(cd) || isRain(cn)) {
-    res = `${res} ${meanwhile}今天${also}有${badWeatherText}, 主人出门要记得带伞!`
+    res = withStrongWind ? `${res} ${meanwhile}今天${also}有${badWeatherText}, 建议主人出门穿雨衣!`
+      : `${res} ${meanwhile}今天${also}有${badWeatherText}, 主人出门要记得带伞!`
     important = true
   } else if (isPollution(cd) || isPollution(cn)) {
     res = `${res} ${meanwhile}今天${also}有${badWeatherText}, 主人请尽量在室内活动!`
