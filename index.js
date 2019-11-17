@@ -43,16 +43,60 @@ bot.on('callback_query', async callbackQuery => {
       chat_id: callbackQuery.message.chat.id,
       message_id: callbackQuery.message.message_id
     })
-    await bot.editMessageText(
+    const result = await bot.editMessageText(
       '会话已过期, 请重新请求. 给您带来不便十分抱歉. 妹抖酱 参上',
       {
         chat_id: callbackQuery.message.chat.id,
         message_id: callbackQuery.message.message_id
       }
     )
+    if (result === true) {
+      await bot.editMessageCaption(
+        '会话已过期, 请重新请求. 给您带来不便十分抱歉. 妹抖酱 参上',
+        {
+          chat_id: callbackQuery.message.chat.id,
+          message_id: callbackQuery.message.message_id
+        }
+      )
+    }
     return
   }
   const { cmd, data } = session
+
+  if (cmd === '/tachie') {
+    const r3 = [
+      'AgADBQADD6kxG4zSiFYtucZTOKaivtSHAjMABAEAAwIAA3kAA7N1BQABFgQ',
+      'AgADBQADEKkxG4zSiFbz586GAs8DLoYzGzMABAEAAwIAA3kAAylEAAIWBA',
+      'AgADBQADEakxG4zSiFYqCMpqZKHPBMGAAjMABAEAAwIAA3kAAwhtBQABFgQ'
+    ]
+    const r15 = [
+      'AgADBQADEqkxG4zSiFauKsyEHW_-LBQ0GzMABAEAAwIAA3kAA39FAAIWBA',
+      'AgADBQADFKkxG4zSiFbeRT0Mt1wbEIqMAjMABAEAAwIAA3kAAwRyBQABFgQ',
+      'AgADBQADkKkxGyYhiVaInczSkHYfknqFAjMABAEAAwIAA3kAA09uBQABFgQ',
+      'AgADBQADFakxG4zSiFbco-vY2HWTgpsnGzMABAEAAwIAA3kAA3BEAAIWBA',
+      'AgADBQADFqkxG4zSiFYAAffYENOsvQS7ExszAAQBAAMCAAN5AANYRAACFgQ',
+      'AgADBQADF6kxG4zSiFYgeyqH7I5yRRguGzMABAEAAwIAA3kAAwJGAAIWBA',
+      'AgADBQADGKkxG4zSiFbcOJhGAT8iyzAfGzMABAEAAwIAA3kAA09DAAIWBA'
+    ]
+    const r15g = [
+      'AgADBQADkakxGyYhiVbI9uzGJJhpkSkZGzMABAEAAwIAA3gAA8pEAAIWBA',
+      'AgADBQADGakxG4zSiFaKm9cTEzlEEZaAAjMABAEAAwIAA3kAAztxBQABFgQ',
+      'AgADBQADGqkxG4zSiFbrgx3P74dB53MrGzMABAEAAwIAA3kAAyxFAAIWBA'
+    ]
+    const toSend = callbackQuery.data === 'r3'
+      ? r3 : callbackQuery.data === 'r15'
+        ? r15 : callbackQuery.data === 'r15g'
+          ? r15g : callbackQuery.data === 'r15f'
+            ? [...r3, ...r15] : [...r3, ...r15, ...r15g]
+    for (let i = 0; i * 10 < toSend.length; i++) {
+      await bot.sendMediaGroup(
+        callbackQuery.message.chat.id,
+        toSend.slice(i * 10, i * 10 + 10).map(s => ({ type: 'photo', media: s }))
+      )
+    }
+    await bot.answerCallbackQuery(callbackQuery.id)
+    return
+  }
 
   if (cmd === '/add_city') {
     if (!store.state.weather[callbackQuery.message.chat.id + '']) {
@@ -229,12 +273,28 @@ bot.on('message', async msg => {
 
     if (cmd === '/about') {
       await bot.sendMessage(msg.chat.id,
-        `梨子的私人助理妹抖天气酱; 可播报天气; 私聊咱可代为主人传达消息; 裙底有[胖次](https://github.com/rikakomoe/makurabot)偷窥是变态(口嫌体直); ${statistic} 妹抖酱 参上`,
+        `梨子的私人助理妹抖天气酱; 可播报天气; 私聊咱可代为主人传达消息; 裙底有[胖次](https://github.com/rikakomoe/makurabot)偷窥是变态; ${statistic} 妹抖酱 参上`,
         {
           parse_mode: 'Markdown',
           disable_web_page_preview: true
         }
       )
+      return
+    }
+
+    if (cmd === '/tachie') {
+      const sentMsg = await bot.sendPhoto(msg.chat.id, 'AgADBQADDKkxG4zSiFaSApcNxGvdRvs1GzMABAEAAwIAA3kAAyNCAAIWBA', {
+        caption: '点击下面的按钮可以获得由画师[宮瀬まひろ](https://twitter.com/miyase_mahiro)创作的[东风谷早苗](https://zh.moegirl.org/zh-hans/%E4%B8%9C%E9%A3%8E%E8%B0%B7%E6%97%A9%E8%8B%97)插画, 主人大人若是喜欢的话请[买本子](https://www.melonbooks.co.jp/detail/detail.php?product_id=535581)支持TA~',
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '去幼儿园!', callback_data: 'r3' }, { text: '去小学!', callback_data: 'r15' }, { text: '去中学!', callback_data: 'r15g' }],
+            [{ text: '去小学路过幼儿园!', callback_data: 'r15f' }],
+            [{ text: '去中学路过小学和幼儿园!(超载了)', callback_data: 'r15gf' }]
+          ]
+        }
+      })
+      await pushSession(sentMsg, cmd)
       return
     }
 
