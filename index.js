@@ -273,10 +273,9 @@ bot.on('message', async msg => {
 
     if (cmd === '/about') {
       await bot.sendMessage(msg.chat.id,
-        `梨子的私人助理妹抖天气酱; 可播报天气; 私聊咱可代为主人传达消息; 裙底有[胖次](https://github.com/rikakomoe/makurabot)偷窥是变态; ${statistic} 妹抖酱 参上`,
+        `梨子的私人助理妹抖天气酱; 可播报天气; 私聊咱可代为主人传达消息; 裙底有[胖次](https://github.com/rikakomoe/makurabot)偷窥是变态;\n${statistic}\n妹抖酱 参上`,
         {
-          parse_mode: 'Markdown',
-          disable_web_page_preview: true
+          parse_mode: 'Markdown'
         }
       )
       return
@@ -707,7 +706,7 @@ for (const cid of Object.keys(store.state.weatherPush)) {
 }
 
 async function defaultReply (bot, msg) {
-  await bot.sendSticker(msg.chat.id, 'CAADBQAD2gYAAvjGxQo7kXhU-BM5fQI', {
+  await bot.sendSticker(msg.chat.id, 'CAADBQAD2wYAAvjGxQp6TGCYLVGZohYE', {
     reply_to_message_id: msg.message_id
   })
 }
