@@ -592,7 +592,7 @@ function formatDaily (today, yesterday, basic) {
     const code = +codeStr
     return (code >= 300 && code <= 399) || // 雨
       (code >= 404 && code <= 406) || // 雨夹雪
-      (code >= 400 && code <= 499 && ta > 0) // 南方的雪
+      (code >= 400 && code <= 499 && ti + ta > 0) // 南方的雪
   }
   const isPollution = (codeStr) => {
     const code = +codeStr
@@ -607,13 +607,9 @@ function formatDaily (today, yesterday, basic) {
     )
   }
   // greeting
-  let todayEmoji = wcd.emoji
-  let badWeatherText = ''
-  if (cd !== cn) {
-    todayEmoji = `${todayEmoji}\u27a1\ufe0f${wcn.emoji}`
-    badWeatherText = isBadWeather(cd) && isBadWeather(cn) ? `${wcd.zh}转${wcn.zh}`
-      : isBadWeather(cn) ? wcn.zh : isBadWeather(cd) ? wcd.zh : ''
-  }
+  const todayEmoji = cd !== cn ? `${wcd.emoji}\u27a1\ufe0f${wcn.emoji}` : wcd.emoji
+  const badWeatherText = isBadWeather(cd) && isBadWeather(cn) && cd !== cn ? `${wcd.zh}转${wcn.zh}`
+    : isBadWeather(cn) ? wcn.zh : isBadWeather(cd) ? wcd.zh : ''
   let important = false
   let res = `主人大人, 今天${basic.location} ${todayEmoji} ${ti}°C ~ ${ta}°C, 早上好!`
   // temperature

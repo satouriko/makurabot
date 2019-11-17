@@ -61,10 +61,10 @@ bot.on('callback_query', async callbackQuery => {
     store.state.weather[callbackQuery.message.chat.id + ''].push(callbackQuery.data)
     const dailyOn = isDailyOn(callbackQuery.message.chat.id)
     if (dailyOn) {
-      addWeatherPushCity(callbackQuery.data, callbackQuery.message.chat.id)
+      await addWeatherPushCity(callbackQuery.data, callbackQuery.message.chat.id)
     }
-    await store.save()
     delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
+    await store.save()
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
       message_id: callbackQuery.message.message_id
@@ -92,9 +92,9 @@ bot.on('callback_query', async callbackQuery => {
       if (store.state.weatherPush[callbackQuery.data]) {
         delete store.state.weatherPush[callbackQuery.data].chats[callbackQuery.message.chat.id + '']
       }
-      await store.save()
     }
     delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
+    await store.save()
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
       message_id: callbackQuery.message.message_id
@@ -124,7 +124,8 @@ bot.on('callback_query', async callbackQuery => {
   }
 
   if (cmd === 'weather_push') {
-    const { cid, expireAt } = data
+    let { cid, expireAt } = data
+    expireAt = new Date(expireAt)
     if (
       store.state.weatherPush[cid] &&
       store.state.weatherPush[cid].chats[callbackQuery.message.chat.id + '']
@@ -174,6 +175,7 @@ bot.on('callback_query', async callbackQuery => {
     }
   )
   delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
+  await store.save()
   await bot.answerCallbackQuery(callbackQuery.id)
 })
 
@@ -297,7 +299,7 @@ bot.on('message', async msg => {
         }
       )
       if (result.length > 0) {
-        pushSession(sentMsg, cmd)
+        await pushSession(sentMsg, cmd)
         await bot.editMessageReplyMarkup({
           inline_keyboard: result.map(city => (
             [{ text: city.fullname, callback_data: city.cid }]
@@ -351,9 +353,8 @@ bot.on('message', async msg => {
           return
         }
         for (const cid of store.state.weather[msg.chat.id + '']) {
-          addWeatherPushCity(cid, msg.chat.id)
+          await addWeatherPushCity(cid, msg.chat.id)
         }
-        await store.save()
         await bot.sendMessage(msg.chat.id, '妹抖酱今后每天都会跟主人问好, 记得回复哦~(*ෆ´ ˘ `ෆ*)♡ 妹抖酱 参上', {
           reply_to_message_id: msg.message_id
         })
@@ -382,7 +383,7 @@ bot.on('message', async msg => {
         }
       }
     )
-    pushSession(sentMsg, 'plain_text')
+    await pushSession(sentMsg, 'plain_text')
   } else {
     if (msg.reply_to_message) {
       if (msg.text && msg.reply_to_message.entities) {
@@ -430,11 +431,23 @@ bot.on('message', async msg => {
   }
 })
 
-function pushSession (sentMsg, cmd, data) {
+async function pushSession (sentMsg, cmd, data) {
   if (!store.state.session[sentMsg.chat.id + '']) {
     store.state.session[sentMsg.chat.id + ''] = {}
   }
-  store.state.session[sentMsg.chat.id + ''][sentMsg.message_id + ''] = { cmd, data }
+  const date = new Date()
+  for (const msgId of Object.keys(store.state.session[sentMsg.chat.id + ''])) {
+    let expireAt = store.state.session[sentMsg.chat.id + ''][msgId].expireAt
+    expireAt = new Date(expireAt)
+    if (date > expireAt) {
+      delete store.state.session[sentMsg.chat.id + ''][msgId]
+    }
+  }
+  date.setDate(date.getDate() + 2)
+  store.state.session[sentMsg.chat.id + ''][sentMsg.message_id + ''] = {
+    cmd, data, expireAt: date.toISOString()
+  }
+  await store.save()
 }
 
 async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
@@ -504,7 +517,7 @@ async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
   clearTimeout(timer)
   await update(true)
   if (error) {
-    pushSession(sentMsg, cmd, {
+    await pushSession(sentMsg, cmd, {
       cites: cityWeathers.filter(cw => !cw.ok).map(cw => cw.cid),
       cityWeathers: cityWeathers.filter(cw => cw.ok)
     })
@@ -529,7 +542,7 @@ function isDailyOn (chatId) {
   return on
 }
 
-function addWeatherPushCity (cid, chatId) {
+async function addWeatherPushCity (cid, chatId) {
   if (!store.state.weatherPush[cid]) {
     store.state.weatherPush[cid] = {
       chats: {
@@ -540,8 +553,7 @@ function addWeatherPushCity (cid, chatId) {
   } else {
     store.state.weatherPush[cid].chats[chatId + ''] = { importantOnly: false }
   }
-  // Note! store wasn't saved yet
-  // Make sure you save it after you call this function
+  await store.save()
 }
 
 async function weatherPush (cid) {
@@ -595,8 +607,9 @@ async function weatherPush (cid) {
             delete store.state.session[chatId][msgId]
           }
         }
+        await store.save()
       }
-      pushSession(sentMsg, 'weather_push', { cid: cid, expireAt })
+      await pushSession(sentMsg, 'weather_push', { cid: cid, expireAt: expireAt.toISOString() })
       chats[chatId].importantOnly = true
     } catch (err) {
       statistic.spank(err)

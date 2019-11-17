@@ -12,7 +12,7 @@ class Store {
         console.error('failed to parse store: ', err)
         store = initStore
       }
-      store.session = {}
+      if (!store.session) store.session = {} // update migration
       if (!store.weatherPush) store.weatherPush = {} // update migration
       try {
         fs.accessSync(this.storePath, fs.constants.W_OK)
@@ -29,10 +29,8 @@ class Store {
   }
 
   saveSync () {
-    const copied = JSON.parse(JSON.stringify(this.state))
-    delete copied.session
     try {
-      fs.writeFileSync(this.storePath, JSON.stringify(copied))
+      fs.writeFileSync(this.storePath, JSON.stringify(this.state))
     } catch (err) {
       console.error(`cannot write lockfile ${this.storePath}, permission denied`)
       process.exit(1)
@@ -40,10 +38,8 @@ class Store {
   }
 
   async save () {
-    const copied = JSON.parse(JSON.stringify(this.state))
-    delete copied.session
     try {
-      await fs.promises.writeFile(this.storePath, JSON.stringify(copied))
+      await fs.promises.writeFile(this.storePath, JSON.stringify(this.state))
     } catch (err) {
       console.error(`cannot write lockfile ${this.storePath}, permission denied`)
       process.exit(1)
