@@ -27,7 +27,7 @@ bot.on('callback_query', async callbackQuery => {
   if (callbackQuery.message.reply_to_message &&
       callbackQuery.from.id !== callbackQuery.message.reply_to_message.from.id) {
     await bot.answerCallbackQuery(callbackQuery.id, {
-      text: '不要碰那里!(｡◕ˇ﹏ˇ◕）啊, 请原谅我的失礼. 妹抖酱 参上',
+      text: '不要碰那里!(｡◕ˇ﹏ˇ◕）对, 对不起, 请原谅我的失礼. 妹抖酱 参上',
       show_alert: true
     })
     return
@@ -217,7 +217,7 @@ bot.on('callback_query', async callbackQuery => {
     message_id: callbackQuery.message.message_id
   })
   await bot.editMessageText(
-    callbackQuery.data !== 'cancel' ? '妹抖酱已经把您的指示传达给主人啦!\\(๑╹◡╹๑)ﾉ♬ 妹抖酱 参上' : '您刚刚取消了发送ヽ(*。>Д<)o゜ 妹抖酱 参上',
+    callbackQuery.data !== 'cancel' ? '妹抖酱已经把主人大人的指示上报啦!\\(๑╹◡╹๑)ﾉ♬ 妹抖酱 参上' : '您刚刚取消了发送ヽ(*。>Д<)o゜ 妹抖酱 参上',
     {
       chat_id: callbackQuery.message.chat.id,
       message_id: callbackQuery.message.message_id
@@ -278,7 +278,7 @@ bot.on('message', async msg => {
 
     if (cmd === '/about') {
       await bot.sendMessage(msg.chat.id,
-        `梨子的私人助理妹抖天气酱; 可播报天气; 私聊咱可代为主人传达消息; 裙底有[胖次](https://github.com/rikakomoe/makurabot)偷窥是变态;\n${statistic}\n妹抖酱 参上`,
+        `◎ 公用女仆绒布球兼梨子女仆的私人助理天气酱\n◎ 可播报天气\n◎ 私聊咱可代为主人传达消息\n◎ [胖次](https://github.com/rikakomoe/makurabot)\n\n${statistic}\n\n妹抖酱 参上`,
         {
           parse_mode: 'Markdown'
         }
@@ -338,6 +338,18 @@ bot.on('message', async msg => {
       return
     }
     if (cmd === '/add_city' || cmd === '/remove_city') {
+      if (!store.state.weather[msg.chat.id + '']) {
+        store.state.weather[msg.chat.id + ''] = []
+        await bot.sendMessage(
+          msg.chat.id,
+          '来自 [MMM](https://scleox.github.io/Wearable-Technology/#%E9%81%93%E5%85%B7%E9%9B%86/%E7%8E%B0%E4%BB%A3%E5%A5%B3%E4%BB%86%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F.html) (Modern Maid Manager, 现代女仆管理系统) 的消息:\nPlease note that this bot is for personal and gentle use only. Due to the limitation of a free weather API plan this bot uses, if you or your group add a large number of cities, or make too frequent requests, you may be banned from using this bot unconditionally and without notice. If you need to use the bot heavily, please talk to this bot about that in private.\n妹抖酱参上',
+          {
+            parse_mode: 'Markdown',
+            disable_web_page_preview: true
+          }
+        )
+        await store.save()
+      }
       const args = msg.text
         .substr(cmdEntity.offset + cmdEntity.length).trim()
       const sentMsg = await bot.sendMessage(msg.chat.id, '请您稍候, 妹抖酱正在帮您查询中……', {
@@ -435,8 +447,10 @@ bot.on('message', async msg => {
   // not me
   if (msg.chat.id !== +process.env.GM0) {
     const sentMsg = await bot.sendMessage(msg.chat.id,
-      '妹抖酱会把您的重要指示报告给主人, 请您先回答问题\n\n您将如何授权主人使用您的消息',
+      '妹抖酱将把主人大人的重要指示上报到 [MMM](https://scleox.github.io/Wearable-Technology/#%E9%81%93%E5%85%B7%E9%9B%86/%E7%8E%B0%E4%BB%A3%E5%A5%B3%E4%BB%86%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F.html) (Modern Maid Manager, 现代女仆管理系统), 在此之前, 请您先回答问题\n\n您将如何授权 MMM 及其委托方使用您的消息',
       {
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true,
         reply_to_message_id: msg.message_id,
         reply_markup: {
           inline_keyboard: [
