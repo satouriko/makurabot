@@ -656,8 +656,12 @@ function formatDaily (today, yesterday, basic) {
     res = `${res} ${meanwhile}今天${also}有${badWeatherText}, 主人请尽量在室内活动!`
     important = true
   }
+  const shortText = res.replace(/主人大人, /g, '')
+    .replace(/早上好! 今天/g, '')
+    .replace(/, 早上好!/g, '.')
   return {
     text: res,
+    shortText,
     important
   }
 }

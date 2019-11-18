@@ -38,6 +38,8 @@ bot.on('callback_query', async callbackQuery => {
     store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
   ) {
     session = store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
+  } else if (callbackQuery.data === "mornin'") {
+    session = { cmd: 'weather_push', data: { cid: '', expireAt: '2019-11-18T04:15:40.739Z' } }
   } else {
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
@@ -640,13 +642,35 @@ async function weatherPush (cid) {
       }
     }
   }
-  const { text, important } = formatDaily(forecast.daily_forecast[0], yesterday, forecast.basic)
+  const { text, shortText, important } = formatDaily(forecast.daily_forecast[0], yesterday, forecast.basic)
   const expireAt = new Date(`${forecast.daily_forecast[0].date}T12:00${toISOTZ(forecast.basic.tz)}`)
   for (const chatId of Object.keys(chats)) {
     if (chats[chatId].importantOnly && !important) continue
     try {
+      const shortTexts = []
+      if (store.state.session[chatId]) {
+        for (const msgId of Object.keys(store.state.session[chatId])) {
+          if (store.state.session[chatId][msgId].cmd === 'weather_push' &&
+            store.state.session[chatId][msgId].data.expireAt === expireAt.toISOString()) {
+            if (store.state.weatherPush[store.state.session[chatId][msgId].data.cid] &&
+              store.state.weatherPush[store.state.session[chatId][msgId].data.cid].chats[chatId]
+            ) {
+              store.state.weatherPush[store.state.session[chatId][msgId].data.cid]
+                .chats[chatId].importantOnly = true
+            }
+            if (store.state.session[chatId][msgId].data.text) {
+              shortTexts.push(...store.state.session[chatId][msgId].data.text)
+            }
+            await bot.deleteMessage(chatId, msgId)
+            delete store.state.session[chatId][msgId]
+          }
+        }
+        await store.save()
+      }
+      shortTexts.push(shortText)
+      const toSend = shortTexts.length > 1 ? `主人大人, 早上好!\n${shortTexts.join('\n')}` : text
       const sentMsg = await bot.sendMessage(chatId,
-        text,
+        toSend,
         {
           reply_markup: {
             inline_keyboard: [
@@ -655,20 +679,13 @@ async function weatherPush (cid) {
           }
         }
       )
-      if (store.state.session[chatId]) {
-        for (const msgId of Object.keys(store.state.session[chatId])) {
-          if (store.state.session[chatId][msgId].cmd === 'weather_push' &&
-            store.state.session[chatId][msgId].data.cid === cid) {
-            await bot.editMessageReplyMarkup(null, {
-              chat_id: chatId,
-              message_id: msgId
-            })
-            delete store.state.session[chatId][msgId]
-          }
+      await pushSession(sentMsg, 'weather_push',
+        {
+          cid: shortTexts.length > 1 ? '' : cid,
+          expireAt: expireAt.toISOString(),
+          text: shortTexts
         }
-        await store.save()
-      }
-      await pushSession(sentMsg, 'weather_push', { cid: cid, expireAt: expireAt.toISOString() })
+      )
       chats[chatId].importantOnly = true
     } catch (err) {
       statistic.spank(err)
