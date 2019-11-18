@@ -610,64 +610,106 @@ function formatDaily (today, yesterday, basic) {
   const todayEmoji = cd !== cn ? `${wcd.emoji}\u27a1\ufe0f${wcn.emoji}` : wcd.emoji
   const badWeatherText = isBadWeather(cd) && isBadWeather(cn) && cd !== cn ? `${wcd.zh}转${wcn.zh}`
     : isBadWeather(cn) ? wcn.zh : isBadWeather(cd) ? wcd.zh : ''
-  let important = false
-  let res = `主人大人, 今天${basic.location} ${todayEmoji} ${ti}°C ~ ${ta}°C, 早上好!`
+  const weather = `${todayEmoji} ${ti}°C ~ ${ta}°C`
+  let suggestion = ''
   const withWind = +(today.wind_spd) >= 29
   const withStrongWind = +(today.wind_spd) >= 39
   // temperature
   // 宜人温度 16~24
   if (ta >= 28 && ti <= 12) {
-    res = `${res} 今天温差很大, 主人要注意穿易于增减的衣服, 小心感冒!`
-    important = true
+    suggestion = '温差很大/主人要注意穿易于增减的衣服, 小心感冒!'
   } else if (ta >= 35) {
-    res = `${res} 今天气温很高, 主人要注意防暑!`
-    important = true
+    suggestion = '气温很高/主人要注意防暑!'
   } else if (yesterday) {
     const yi = +yesterday.tmp_min; const ya = +yesterday.tmp_max
     if ((ti <= 12 && ti - yi <= -5) || (ta <= 12 && ta - ya <= -5)) {
-      res = withWind ? `${res} 今天较昨天气温显著降低, 并且风比较大, 主人要注意适当添加衣服!`
-        : `${res} 今天较昨天气温显著降低, 主人要注意适当添加衣服!`
-      important = true
+      suggestion = withWind ? '较昨天气温显著降低/风比较大/主人要注意适当添加衣服!'
+        : '较昨天气温显著降低/主人要注意适当添加衣服!'
     } else if (ti <= 12 && withWind) {
-      res = `${res} 今天风比较大, 主人要注意适当添加衣服!`
-      important = true
+      suggestion = '风比较大/主人要注意适当添加衣服!'
     } else if ((yi <= 12 && ti - yi >= 5) || (ya <= 12 && ta - ya >= 5)) {
-      res = `${res} 今天较昨天气温有所回升, 主人可适当减少衣服!`
-      important = true
+      suggestion = '较昨天气温有所回升/主人可适当减少衣服!'
     } else if ((ta >= 28 && ta - ya >= 5) || (ti >= 28 && ti - yi >= 5)) {
-      res = `${res} 今天较昨天气温显著升高, 主人注意不要穿太多衣服!`
-      important = true
+      suggestion = '较昨天气温显著升高/主人注意不要穿太多衣服!'
     }
   } else if (ti <= 12 && withWind) {
-    res = `${res} 今天风比较大, 主人要注意适当添加衣服!`
-    important = true
+    suggestion = '风比较大/主人要注意适当添加衣服!'
   }
-  // weather
-  const meanwhile = important ? '同时' : ''
-  const also = important ? '还' : ''
   if (isExtremeWeather(cd) || isExtremeWeather(cn)) {
-    res = `${res} ${meanwhile}今天天气极端恶劣, 有${badWeatherText}, 请主人尽量避免出行, 如需出行, 请务必注意安全!`
-    important = true
+    suggestion = `${suggestion};天气极端恶劣, 有${badWeatherText}/请主人尽量避免出行, 如需出行, 请务必注意安全!`
   } else if (isRain(cd) || isRain(cn)) {
-    res = withStrongWind ? `${res} ${meanwhile}今天${also}有${badWeatherText}, 建议主人出门穿雨衣!`
-      : `${res} ${meanwhile}今天${also}有${badWeatherText}, 主人出门要记得带伞!`
-    important = true
+    suggestion = withStrongWind ? `${suggestion};有${badWeatherText}/建议主人出门穿雨衣!`
+      : `${suggestion};有${badWeatherText}/主人出门要记得带伞!`
   } else if (isPollution(cd) || isPollution(cn)) {
-    res = `${res} ${meanwhile}今天${also}有${badWeatherText}, 主人请尽量在室内活动!`
-    important = true
+    suggestion = `${suggestion};有${badWeatherText}/主人请尽量在室内活动!`
   }
-  const shortText = res.replace(/主人大人, /g, '')
-    .replace(/早上好! 今天/g, '')
-    .replace(/, 早上好!/g, '.')
   return {
-    text: res,
-    shortText,
-    important
+    location: basic.location,
+    weather,
+    suggestion
   }
+}
+
+function formatDaily2 (formatDailies) {
+  if (formatDailies.length === 1) {
+    const f = formatDailies[0]
+    const t1 = `主人大人, 今天${f.location} ${f.weather}, 早上好!`
+    if (!f.suggestion) return t1
+    const suggestions = f.suggestion.split(';').map(rawSuggestion => {
+      const reasons = rawSuggestion.split('/')
+      const suggestion = reasons.pop()
+      return { reasons, suggestion }
+    })
+    let t2 = '今天'
+    for (let j = 0; j < suggestions.length; j++) {
+      const suggestion = suggestions[j]
+      let reason = ''
+      for (let i = 0; i < suggestion.reasons.length; i++) {
+        if (i === 0) reason = `${reason}${suggestion.reasons[i]}`
+        else if (i === 1) reason = `${reason}, 并且${suggestion.reasons[i]}`
+        else reason = `${reason}, ${suggestion.reasons[i]}`
+      }
+      if (j === 0) t2 = `${t2}${reason}, ${suggestion.suggestion}`
+      if (j === 1) {
+        t2 = reason[0] === '有' ? `${t2} 同时今天还${reason}, ${suggestion.suggestion}`
+          : `${t2} 同时今天${reason}, ${suggestion.suggestion}`
+      }
+    }
+    return `${t1} ${t2}`
+  }
+  const head = '主人大人, 早上好! 今天'
+  const weatherTexts = []; const suggestionTexts = []
+  const suggestionsMap = {}
+  for (const f of formatDailies) {
+    weatherTexts.push(`${f.location} ${f.weather}`)
+    if (!f.suggestion) continue
+    f.suggestion.split(';').forEach(rawSuggestion => {
+      const reasons = rawSuggestion.split('/')
+      const suggestion = reasons.pop()
+      if (!suggestionsMap[suggestion]) suggestionsMap[suggestion] = {}
+      for (const reason of reasons) {
+        if (!suggestionsMap[suggestion][reason]) suggestionsMap[suggestion][reason] = []
+        suggestionsMap[suggestion][reason].push(f.location)
+      }
+    })
+  }
+  for (const suggestion of Object.keys(suggestionsMap)) {
+    const reasons = Object.entries(suggestionsMap[suggestion])
+    reasons.sort((a, b) => (b[1].length - a[1].length))
+    let reason = ''
+    for (let i = 0; i < reasons; i++) {
+      if (i === 0) reason = `${reasons[i][1].join(', ')}${reasons[i][0]}`
+      else if (i === 1) reason = `${reason}, 同时${reasons[i][1].join(', ')}${reasons[i][0]}`
+      else reason = `${reason}, ${reasons[i][1].join(', ')}${reasons[i][0]}`
+    }
+    suggestionTexts.push(`今天${reason}, ${suggestion}`)
+  }
+  return `${head}\n${weatherTexts.join('\n')}\n${suggestionTexts.join('\n')}`
 }
 
 module.exports = {
   formatLegend,
   formatWeather,
-  formatDaily
+  formatDaily,
+  formatDaily2
 }

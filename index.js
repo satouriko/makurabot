@@ -6,7 +6,7 @@ const store = require('./store')
 const statistic = require('./statistic')
 const { toISOTZ } = require('./time')
 const { getWeatherNow, getWeatherForecast, queryCity } = require('./heweather')
-const { formatWeather, formatLegend, formatDaily } = require('./format_weather')
+const { formatWeather, formatLegend, formatDaily, formatDaily2 } = require('./format_weather')
 const { scheduleDateTime } = require('./schedule')
 
 const client = new Twitter({
@@ -39,7 +39,7 @@ bot.on('callback_query', async callbackQuery => {
   ) {
     session = store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
   } else if (callbackQuery.data === "mornin'") {
-    session = { cmd: 'weather_push', data: { cid: '', expireAt: '2019-11-18T04:15:40.739Z' } }
+    session = { cmd: 'weather_push', data: { cids: [], expireAt: '2019-11-18T04:15:40.739Z' } }
   } else {
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
@@ -170,13 +170,16 @@ bot.on('callback_query', async callbackQuery => {
   }
 
   if (cmd === 'weather_push') {
-    let { cid, expireAt } = data
+    let { cid, cids, expireAt } = data
     expireAt = new Date(expireAt)
-    if (
-      store.state.weatherPush[cid] &&
-      store.state.weatherPush[cid].chats[callbackQuery.message.chat.id + '']
-    ) {
-      store.state.weatherPush[cid].chats[callbackQuery.message.chat.id + ''].importantOnly = false
+    if (!cids) cids = [cid]
+    for (const cid of cids) {
+      if (
+        store.state.weatherPush[cid] &&
+        store.state.weatherPush[cid].chats[callbackQuery.message.chat.id + '']
+      ) {
+        store.state.weatherPush[cid].chats[callbackQuery.message.chat.id + ''].importantOnly = false
+      }
     }
     await store.save()
     const now = new Date()
@@ -643,24 +646,21 @@ async function weatherPush (cid) {
       }
     }
   }
-  const { text, shortText, important } = formatDaily(forecast.daily_forecast[0], yesterday, forecast.basic)
+  const f1 = formatDaily(forecast.daily_forecast[0], yesterday, forecast.basic)
   const expireAt = new Date(`${forecast.daily_forecast[0].date}T12:00${toISOTZ(forecast.basic.tz)}`)
   for (const chatId of Object.keys(chats)) {
-    if (chats[chatId].importantOnly && !important) continue
+    if (chats[chatId].importantOnly && !f1.suggestion) continue
     try {
-      const shortTexts = []
+      const f1s = []; const cids = []
       if (store.state.session[chatId]) {
         for (const msgId of Object.keys(store.state.session[chatId])) {
           if (store.state.session[chatId][msgId].cmd === 'weather_push' &&
             store.state.session[chatId][msgId].data.expireAt === expireAt.toISOString()) {
-            if (store.state.weatherPush[store.state.session[chatId][msgId].data.cid] &&
-              store.state.weatherPush[store.state.session[chatId][msgId].data.cid].chats[chatId]
-            ) {
-              store.state.weatherPush[store.state.session[chatId][msgId].data.cid]
-                .chats[chatId].importantOnly = true
+            if (store.state.session[chatId][msgId].data.f1s) {
+              f1s.push(...store.state.session[chatId][msgId].data.f1s)
             }
-            if (store.state.session[chatId][msgId].data.text) {
-              shortTexts.push(...store.state.session[chatId][msgId].data.text)
+            if (store.state.session[chatId][msgId].data.cids) {
+              cids.push(...store.state.session[chatId][msgId].data.cids)
             }
             await bot.deleteMessage(chatId, msgId)
             delete store.state.session[chatId][msgId]
@@ -668,8 +668,9 @@ async function weatherPush (cid) {
         }
         await store.save()
       }
-      shortTexts.push(shortText)
-      const toSend = shortTexts.length > 1 ? `主人大人, 早上好!\n${shortTexts.join('\n')}` : text
+      f1s.push(f1)
+      cids.push(cid)
+      const toSend = formatDaily2(f1s)
       const sentMsg = await bot.sendMessage(chatId,
         toSend,
         {
@@ -682,9 +683,9 @@ async function weatherPush (cid) {
       )
       await pushSession(sentMsg, 'weather_push',
         {
-          cid: shortTexts.length > 1 ? '' : cid,
-          expireAt: expireAt.toISOString(),
-          text: shortTexts
+          cids,
+          f1s,
+          expireAt: expireAt.toISOString()
         }
       )
       chats[chatId].importantOnly = true
