@@ -636,12 +636,15 @@ function formatDaily (today, yesterday, basic) {
     suggestion = '风比较大/主人要注意适当添加衣服!'
   }
   if (isExtremeWeather(cd) || isExtremeWeather(cn)) {
-    suggestion = `${suggestion};天气极端恶劣, 有${badWeatherText}/请主人尽量避免出行, 如需出行, 请务必注意安全!`
+    if (suggestion) suggestion += ';'
+    suggestion = `${suggestion}天气极端恶劣, 有${badWeatherText}/请主人尽量避免出行, 如需出行, 请务必注意安全!`
   } else if (isRain(cd) || isRain(cn)) {
-    suggestion = withStrongWind ? `${suggestion};有${badWeatherText}/建议主人出门穿雨衣!`
-      : `${suggestion};有${badWeatherText}/主人出门要记得带伞!`
+    if (suggestion) suggestion += ';'
+    suggestion = withStrongWind ? `${suggestion}有${badWeatherText}/建议主人出门穿雨衣!`
+      : `${suggestion}有${badWeatherText}/主人出门要记得带伞!`
   } else if (isPollution(cd) || isPollution(cn)) {
-    suggestion = `${suggestion};有${badWeatherText}/主人请尽量在室内活动!`
+    if (suggestion) suggestion += ';'
+    suggestion = `${suggestion}有${badWeatherText}/主人请尽量在室内活动!`
   }
   return {
     location: basic.location,
@@ -697,7 +700,7 @@ function formatDaily2 (formatDailies) {
     const reasons = Object.entries(suggestionsMap[suggestion])
     reasons.sort((a, b) => (b[1].length - a[1].length))
     let reason = ''
-    for (let i = 0; i < reasons; i++) {
+    for (let i = 0; i < reasons.length; i++) {
       if (i === 0) reason = `${reasons[i][1].join(', ')}${reasons[i][0]}`
       else if (i === 1) reason = `${reason}, 同时${reasons[i][1].join(', ')}${reasons[i][0]}`
       else reason = `${reason}, ${reasons[i][1].join(', ')}${reasons[i][0]}`
