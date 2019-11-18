@@ -68,7 +68,6 @@ bot.on('callback_query', async callbackQuery => {
   if (cmd === '/album' || cmd === '/tachie') {
     const r3 = [
       'AgADBQADxqgxG5pRmFatjowKDEaSnAyEAjMABAEAAwIAA3kAA-CCBQABFgQ',
-      'AgADBQADpqkxGyYhkVYGjBevxgQpab4RGzMABAEAAwIAA3kAA5lZAAIWBA',
       'AgADBQADgKoxG17amFa0n08rpj5_oqIxGzMABAEAAwIAA3kAA51ZAAIWBA',
       'AgADBQADxagxG5pRmFbfj8GayajUHruJAjMABAEAAwIAA3kAA7iLBQABFgQ',
       'AgADBQADf6oxG17amFYwS9HD8jNa2iEqGzMABAEAAwIAA3kAA1BaAAIWBA',
@@ -77,47 +76,31 @@ bot.on('callback_query', async callbackQuery => {
       'AgADBQADEKkxG4zSiFbz586GAs8DLoYzGzMABAEAAwIAA3kAAylEAAIWBA',
       'AgADBQADD6kxG4zSiFYtucZTOKaivtSHAjMABAEAAwIAA3kAA7N1BQABFgQ',
       'AgADBQADw6gxG5pRmFbYl0Jyxmbyt4ktGzMABAEAAwIAA3kAA89YAAIWBA',
-      'AgADBQADfqoxG17amFbq0gnuXYyqIdQhGzMABAEAAwIAA3gAAxhbAAIWBA',
-      'AgADBQADfaoxG17amFYC2Y1bQjXORuwyGzMABAEAAwIAA3kAA8FZAAIWBA',
-      'AgADBQADpakxGyYhkVbsFXCmMaixEH0mGzMABAEAAwIAA3kAA4RXAAIWBA',
-      'AgADBQADwqgxG5pRmFYRDMJtv6jrT7wyGzMABAEAAwIAA3kAA19YAAIWBA'
+      'AgADBQADfqoxG17amFbq0gnuXYyqIdQhGzMABAEAAwIAA3gAAxhbAAIWBA'
     ]
     const r15 = [
-      'AgADBQADjaoxG17amFYAAVnRZTLutMykJhszAAQBAAMCAAN5AAOxWQACFgQ',
-      'AgADBQADjKoxG17amFYSWmVDa4RXBI8XGzMABAEAAwIAA3gAA6pbAAIWBA',
-      'AgADBQADi6oxG17amFbEUlYUIaL-KNkfGzMABAEAAwIAA3kAA-laAAIWBA',
-      'AgADBQADGKkxG4zSiFbcOJhGAT8iyzAfGzMABAEAAwIAA3kAA09DAAIWBA',
-      'AgADBQADF6kxG4zSiFYgeyqH7I5yRRguGzMABAEAAwIAA3kAAwJGAAIWBA',
-      'AgADBQADFqkxG4zSiFYAAffYENOsvQS7ExszAAQBAAMCAAN5AANYRAACFgQ',
-      'AgADBQADFakxG4zSiFbco-vY2HWTgpsnGzMABAEAAwIAA3kAA3BEAAIWBA',
       'AgADBQADEqkxG4zSiFauKsyEHW_-LBQ0GzMABAEAAwIAA3kAA39FAAIWBA',
-      'AgADBQADgqoxG17amFY6sp5NbPtMUd2KAjMABAEAAwIAA3kAAz2JBQABFgQ',
       'AgADBQADkKkxGyYhiVaInczSkHYfknqFAjMABAEAAwIAA3kAA09uBQABFgQ',
-      'AgADBQADgaoxG17amFaEkbGpylkizGAyGzMABAEAAwIAA3kAA8xZAAIWBA',
       'AgADBQADFKkxG4zSiFbeRT0Mt1wbEIqMAjMABAEAAwIAA3kAAwRyBQABFgQ',
-      'AgADBQADPqkxGxTcmFa5NMuppOeIH-OCAjMABAEAAwIAA3kAA8CCBQABFgQ',
-      'AgADBQADhKoxG17amFbs8ePyFhLoB-wyGzMABAEAAwIAA3gAA_FZAAIWBA',
-      'AgADBQADyagxG5pRmFZxNq8hx6bw3HsuGzMABAEAAwIAA3kAA8BZAAIWBA',
-      'AgADBQADyKgxG5pRmFbae1J2AjRMKwwfGzMABAEAAwIAA3kAAxhbAAIWBA',
-      'AgADBQADg6oxG17amFYMaWgH99ZydOAiGzMABAEAAwIAA3kAA9NYAAIWBA',
-      'AgADBQADhaoxG17amFYvaeMctli_iF8mGzMABAEAAwIAA3kAA55aAAIWBA',
-      'AgADBQADp6kxGyYhkVZAX6HXQOc35ApAGzMABAEAAwIAA3kAA9JZAAIWBA',
-      'AgADBQADjqoxG17amFYLnDLxY6DW550uGzMABAEAAwIAA3gAA1RZAAIWBA',
-      'AgADBQADj6oxG17amFZmLvWGoy0v2Y81GzMABAEAAwIAA3kAA0BaAAIWBA',
-      'AgADBQADEakxGyYhmVaSAkiVL8RbU8-EAjMABAEAAwIAA3kAA_2HBQABFgQ',
-      'AgADBQADkKoxG17amFZ6kd2zLhRAh7sfGzMABAEAAwIAA3kAA-9aAAIWBA'
+      'AgADBQADFqkxG4zSiFYAAffYENOsvQS7ExszAAQBAAMCAAN5AANYRAACFgQ',
+      'AgADBQADF6kxG4zSiFYgeyqH7I5yRRguGzMABAEAAwIAA3kAAwJGAAIWBA',
+      'AgADBQADgaoxG17amFaEkbGpylkizGAyGzMABAEAAwIAA3kAA8xZAAIWBA',
+      'AgADBQADi6oxG17amFbEUlYUIaL-KNkfGzMABAEAAwIAA3kAA-laAAIWBA',
+      'AgADBQADFakxG4zSiFbco-vY2HWTgpsnGzMABAEAAwIAA3kAA3BEAAIWBA',
+      'AgADBQADpqkxGyYhkVYGjBevxgQpab4RGzMABAEAAwIAA3kAA5lZAAIWBA',
+      'AgADBQADgqoxG17amFY6sp5NbPtMUd2KAjMABAEAAwIAA3kAAz2JBQABFgQ'
     ]
     const r15g = [
+      'AgADBQADl6oxG17amFaWlPN_Orn1CwhAGzMABAEAAwIAA3kAA19dAAIWBA',
+      'AgADBQADmKoxG17amFat5O8cG8NMvDgqGzMABAEAAwIAA3kAA8BbAAIWBA',
+      'AgADBQAD2KgxG5pRmFafHuKtlk9LEmYtGzMABAEAAwIAA3kAA09bAAIWBA',
+      'AgADBQAD0KgxG5pRmFZSZTkXyILcYNg8GzMABAEAAwIAA3kAAwFaAAIWBA',
       'AgADBQADkakxGyYhiVbI9uzGJJhpkSkZGzMABAEAAwIAA3gAA8pEAAIWBA',
-      'AgADBQADGakxG4zSiFaKm9cTEzlEEZaAAjMABAEAAwIAA3kAAztxBQABFgQ',
-      'AgADBQADGqkxG4zSiFbrgx3P74dB53MrGzMABAEAAwIAA3kAAyxFAAIWBA',
       'AgADBQADhqoxG17amFY6pfIG64n5U8U9GzMABAEAAwIAA3kAA_daAAIWBA',
       'AgADBQADh6oxG17amFbuyZn-pTwJ6_4eGzMABAEAAwIAA3kAA2daAAIWBA',
-      'AgADBQADz6gxG5pRmFbAw5nqnRtFeuEuGzMABAEAAwIAA3kAA-FYAAIWBA',
-      'AgADBQADhqoxG17amFY6pfIG64n5U8U9GzMABAEAAwIAA3kAA_daAAIWBA',
-      'AgADBQAD0KgxG5pRmFZSZTkXyILcYNg8GzMABAEAAwIAA3kAAwFaAAIWBA',
-      'AgADBQAD0agxG5pRmFYa9GST3D_qsGMVGzMABAEAAwIAA3gAAyxcAAIWBA',
-      'AgADBQADEqkxGyYhmVbn6V-S1R5geD2IAjMABAEAAwIAA3gAA2GFBQABFgQ'
+      'AgADBQADGqkxG4zSiFbrgx3P74dB53MrGzMABAEAAwIAA3kAAyxFAAIWBA',
+      'AgADBQADGakxG4zSiFaKm9cTEzlEEZaAAjMABAEAAwIAA3kAAztxBQABFgQ',
+      'AgADBQADz6gxG5pRmFbAw5nqnRtFeuEuGzMABAEAAwIAA3kAA-FYAAIWBA'
     ]
     const toSend = callbackQuery.data === 'r3'
       ? r3 : callbackQuery.data === 'r15'
@@ -322,13 +305,11 @@ bot.on('message', async msg => {
 
     if (cmd === '/album') {
       const sentMsg = await bot.sendPhoto(msg.chat.id, 'AgADBQADx6gxG5pRmFastHk5utJeOMsvGzMABAEAAwIAA3gAAyRaAAIWBA', {
-        caption: '点击下面的按钮可以获得由画师[宮瀬まひろ](https://twitter.com/miyase_mahiro)创作的[东风谷早苗](https://zh.moegirl.org/zh-hans/%E4%B8%9C%E9%A3%8E%E8%B0%B7%E6%97%A9%E8%8B%97)插画, 主人大人若是喜欢的话请[买本子](https://www.melonbooks.co.jp/detail/detail.php?product_id=535581)支持TA~',
+        caption: '点击下面的按钮可以获得由画师[宮瀬まひろ](https://twitter.com/miyase_mahiro)创作的[东风谷早苗](https://zh.moegirl.org/zh-hans/%E4%B8%9C%E9%A3%8E%E8%B0%B7%E6%97%A9%E8%8B%97)插画, 主人大人若是喜欢的话请[买本子](http://www.77haru.com/)支持TA~',
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '去幼儿园!', callback_data: 'r3' }, { text: '去小学!', callback_data: 'r15' }, { text: '去中学!', callback_data: 'r15g' }],
-            [{ text: '去小学路过幼儿园!', callback_data: 'r15f' }],
-            [{ text: '去中学路过小学和幼儿园!', callback_data: 'r15gf' }]
+            [{ text: '去幼儿园!', callback_data: 'r3' }, { text: '去小学!', callback_data: 'r15' }, { text: '去中学!', callback_data: 'r15g' }]
           ]
         }
       })
