@@ -483,6 +483,7 @@ bot.on('message', async msg => {
           { reply_to_message_id: msg.message_id }
         )
       } else {
+        console.log(msg)
         await bot.sendMessage(msg.chat.id,
           '暂不支持这种格式的推文.',
           { reply_to_message_id: msg.message_id }
