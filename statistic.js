@@ -13,7 +13,7 @@ class Statistic {
     const now = new Date()
     const hours = (now - this.startedFrom) / 36e5
     if (hours < 1) return '不到 1 (人间)小时'
-    return ` ${hours} (人间)小时`
+    return ` ${Math.floor(hours)} (人间)小时`
   }
 
   toString () {
