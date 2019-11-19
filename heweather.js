@@ -99,6 +99,10 @@ async function basic (loc, lang) {
 }
 
 async function queryCity (loc) {
+  loc = loc.trim()
+  if (!loc) {
+    throw new Error('invalid param')
+  }
   const cache = heweatherCache[`city://${loc}`]
   if (cache) return cache
   let result

@@ -354,7 +354,11 @@ bot.on('message', async msg => {
       try {
         result = await queryCity(args)
       } catch (err) {
-        await bot.editMessageText(err.message, {
+        let text = err.message
+        if (err.message === 'invalid param') {
+          text = `请在输入的命令后面加上城市名, 中英文都可以, 例如: ${cmd} 上海`
+        }
+        await bot.editMessageText(text, {
           chat_id: msg.chat.id,
           message_id: sentMsg.message_id
         })
