@@ -25,7 +25,7 @@ bot.on('callback_query', async callbackQuery => {
   }
 
   if (callbackQuery.message.reply_to_message &&
-      callbackQuery.from.id !== callbackQuery.message.reply_to_message.from.id) {
+    callbackQuery.from.id !== callbackQuery.message.reply_to_message.from.id) {
     await bot.answerCallbackQuery(callbackQuery.id, {
       text: '不要碰那里!(｡◕ˇ﹏ˇ◕）对, 对不起, 请原谅我的失礼. 妹抖酱 参上',
       show_alert: true
@@ -185,27 +185,7 @@ bot.on('callback_query', async callbackQuery => {
   }
 
   if (cmd === 'weather_push') {
-    let { cid, cids, expireAt } = data
-    expireAt = new Date(expireAt)
-    if (!cids) cids = [cid]
-    for (const cid of cids) {
-      if (
-        store.state.weatherPush[cid] &&
-        store.state.weatherPush[cid].chats[callbackQuery.message.chat.id + '']
-      ) {
-        store.state.weatherPush[cid].chats[callbackQuery.message.chat.id + ''].importantOnly = false
-      }
-    }
-    await store.save()
-    const now = new Date()
-    let text
-    if (now <= expireAt) {
-      const texts = [
-        '主人早!', '主人早上好!', '主人早安!', '主人早~', '主人早喵~', '主人早上好喵~', '主人早安喵~',
-        '主人早安~', '主人早上好~', '主人早喵!', '主人早上好喵~'
-      ]
-      text = texts[Math.floor(Math.random() * texts.length)]
-    } else text = '不早了, 主人!'
+    const text = await handleMornin(callbackQuery.message.chat.id, data)
     await bot.answerCallbackQuery(callbackQuery.id, {
       text
     })
@@ -455,6 +435,20 @@ bot.on('message', async msg => {
 
     if (msg.chat.type === 'private') await defaultReply(bot, msg)
     return
+  }
+
+  if (msg.reply_to_message &&
+    store.state.session[msg.reply_to_message.chat.id + ''] &&
+    store.state.session[msg.reply_to_message.chat.id + ''][msg.reply_to_message.message_id]) {
+    const session = store.state.session[msg.reply_to_message.chat.id + ''][msg.reply_to_message.message_id]
+    const { cmd, data } = session
+    if (cmd === 'weather_push') {
+      const text = await handleMornin(msg.reply_to_message.chat.id, data)
+      await bot.sendMessage(msg.chat.id,
+        text,
+        { reply_to_message_id: msg.message_id }
+      )
+    }
   }
 
   if (msg.chat.type !== 'private') return
@@ -751,6 +745,31 @@ async function checkAndScheduleWeatherPush (cid) {
 
 for (const cid of Object.keys(store.state.weatherPush)) {
   checkAndScheduleWeatherPush(cid)
+}
+
+async function handleMornin (chatId, data) {
+  let { cid, cids, expireAt } = data
+  expireAt = new Date(expireAt)
+  if (!cids) cids = [cid]
+  for (const cid of cids) {
+    if (
+      store.state.weatherPush[cid] &&
+      store.state.weatherPush[cid].chats[chatId + '']
+    ) {
+      store.state.weatherPush[cid].chats[chatId + ''].importantOnly = false
+    }
+  }
+  await store.save()
+  const now = new Date()
+  let text
+  if (now <= expireAt) {
+    const texts = [
+      '主人早!', '主人早上好!', '主人早安!', '主人早~', '主人早喵~', '主人早上好喵~', '主人早安喵~',
+      '主人早安~', '主人早上好~', '主人早喵!', '主人早上好喵~'
+    ]
+    text = texts[Math.floor(Math.random() * texts.length)]
+  } else text = '不早了, 主人!'
+  return text
 }
 
 async function defaultReply (bot, msg) {
