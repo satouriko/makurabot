@@ -65,7 +65,7 @@ bot.on('callback_query', async callbackQuery => {
   }
   const { cmd, data } = session
 
-  if (cmd === '/album' || cmd === '/tachie') {
+  if (cmd === '/album') {
     const r3 = [
       'AgADBQADxqgxG5pRmFatjowKDEaSnAyEAjMABAEAAwIAA3kAA-CCBQABFgQ',
       'AgADBQADgKoxG17amFa0n08rpj5_oqIxGzMABAEAAwIAA3kAA51ZAAIWBA',
@@ -104,9 +104,7 @@ bot.on('callback_query', async callbackQuery => {
     ]
     const toSend = callbackQuery.data === 'r3'
       ? r3 : callbackQuery.data === 'r15'
-        ? r15 : callbackQuery.data === 'r15g'
-          ? r15g : callbackQuery.data === 'r15f'
-            ? [...r3, ...r15] : [...r3, ...r15, ...r15g]
+        ? r15 : r15g
     for (let i = 0; i * 10 < toSend.length; i++) {
       await bot.sendMediaGroup(
         callbackQuery.message.chat.id,
@@ -214,32 +212,34 @@ bot.on('callback_query', async callbackQuery => {
     return
   }
 
-  if (callbackQuery.data !== 'cancel') {
-    const fwdMsg = await bot.forwardMessage(
-      +process.env.GM0,
-      callbackQuery.message.chat.id,
-      callbackQuery.message.reply_to_message.message_id
-    )
-    await bot.sendMessage(
-      +process.env.GM0,
-      `来自用户 [${callbackQuery.from.id}](tg://user?id=${callbackQuery.from.id}) , 转发授权: ${callbackQuery.data}`,
+  if (cmd === 'plain_text') {
+    if (callbackQuery.data !== 'cancel') {
+      const fwdMsg = await bot.forwardMessage(
+        +process.env.GM0,
+        callbackQuery.message.chat.id,
+        callbackQuery.message.reply_to_message.message_id
+      )
+      await bot.sendMessage(
+        +process.env.GM0,
+        `来自用户 [${callbackQuery.from.id}](tg://user?id=${callbackQuery.from.id}) , 转发授权: ${callbackQuery.data}`,
+        {
+          reply_to_message_id: fwdMsg.message_id,
+          parse_mode: 'Markdown'
+        }
+      )
+    }
+    await bot.editMessageReplyMarkup(null, {
+      chat_id: callbackQuery.message.chat.id,
+      message_id: callbackQuery.message.message_id
+    })
+    await bot.editMessageText(
+      callbackQuery.data !== 'cancel' ? '妹抖酱已经把主人大人的指示上报啦!\\(๑╹◡╹๑)ﾉ♬ 妹抖酱 参上' : '您刚刚取消了发送ヽ(*。>Д<)o゜ 妹抖酱 参上',
       {
-        reply_to_message_id: fwdMsg.message_id,
-        parse_mode: 'Markdown'
+        chat_id: callbackQuery.message.chat.id,
+        message_id: callbackQuery.message.message_id
       }
     )
   }
-  await bot.editMessageReplyMarkup(null, {
-    chat_id: callbackQuery.message.chat.id,
-    message_id: callbackQuery.message.message_id
-  })
-  await bot.editMessageText(
-    callbackQuery.data !== 'cancel' ? '妹抖酱已经把主人大人的指示上报啦!\\(๑╹◡╹๑)ﾉ♬ 妹抖酱 参上' : '您刚刚取消了发送ヽ(*。>Д<)o゜ 妹抖酱 参上',
-    {
-      chat_id: callbackQuery.message.chat.id,
-      message_id: callbackQuery.message.message_id
-    }
-  )
   delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
   await store.save()
   await bot.answerCallbackQuery(callbackQuery.id)
@@ -295,7 +295,7 @@ bot.on('message', async msg => {
 
     if (cmd === '/about') {
       await bot.sendMessage(msg.chat.id,
-        `◎ 公用女仆绒布球兼梨子女仆的私人助理天气酱\n◎ 可播报天气\n◎ 私聊咱可代为主人传达消息\n◎ [胖次](https://github.com/rikakomoe/makurabot)\n\n${statistic}\n\n妹抖酱 参上`,
+        `◎ 公用女仆绒布球兼梨子前辈的私人助理天气酱\n◎ 可播报天气\n◎ 私聊咱可代为主人传达消息\n◎ [胖次](https://github.com/rikakomoe/makurabot)\n◎ 原型是[东风谷早苗](https://zh.moegirl.org/zh-hans/%E4%B8%9C%E9%A3%8E%E8%B0%B7%E6%97%A9%E8%8B%97)\n\n${statistic}\n\n妹抖酱 参上`,
         {
           parse_mode: 'Markdown'
         }

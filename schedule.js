@@ -1,7 +1,7 @@
 const { toISOTZ, toTZOffset } = require('./time')
 
 /**
- * schedule
+ * scheduleTime
  * @param  {string}   timeStr     Time in format of '06:47'
  * @param  {string}   tzStr       Timezone in format of '-7.00'
  * @param  {function} [callback]  Callback function
@@ -26,7 +26,7 @@ function scheduleTime (timeStr, tzStr, callback) {
 }
 
 /**
- * schedule
+ * scheduleDateTime
  * @param  {string}   dateStr     Date in format of '2019-11-15'
  * @param  {string}   timeStr     Time in format of '06:47'
  * @param  {string}   tzStr       Timezone in format of '-7.00'

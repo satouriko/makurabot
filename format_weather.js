@@ -504,12 +504,15 @@ const promptEmojiList = '\ud83c\udf19\ufe0f\u2601\ufe0f\ud83c\udf2c\ufe0f\ud83c\
 function formatLegend (queryEmoji, lang) {
   queryEmoji = queryEmoji.replace(/[\ufe0e\ufe0f]/g, '')
   let emojiSet
-  const order = ['others', 'fog', 'snow', 'rain', 'wind', 'cloud', 'moon']
+  const order = ['others', 'fog', 'snow', 'rain', 'wind', 'moon', 'cloud']
   for (const emojiSetKey of order) {
-    if (emojiList[emojiSetKey].match(queryEmoji)) {
-      emojiSet = weatherConditions[emojiSetKey]
-      break
+    for (const ec of queryEmoji) {
+      if (emojiList[emojiSetKey].match(ec)) {
+        emojiSet = weatherConditions[emojiSetKey]
+        break
+      }
     }
+    if (emojiSet) break
   }
   if (!queryEmoji || !emojiSet) {
     switch (lang) {
@@ -637,7 +640,7 @@ function formatDaily (today, yesterday, basic) {
   }
   if (isExtremeWeather(cd) || isExtremeWeather(cn)) {
     if (suggestion) suggestion += ';'
-    suggestion = `${suggestion}天气极端恶劣, 有${badWeatherText}/请主人尽量避免出行, 如需出行, 请务必注意安全!`
+    suggestion = `${suggestion}天气极端恶劣:/有${badWeatherText}/请主人尽量避免出行, 如需出行, 请务必注意安全!`
   } else if (isRain(cd) || isRain(cn)) {
     if (suggestion) suggestion += ';'
     suggestion = withStrongWind ? `${suggestion}有${badWeatherText}/建议主人出门穿雨衣!`
@@ -669,8 +672,12 @@ function formatDaily2 (formatDailies) {
       let reason = ''
       for (let i = 0; i < suggestion.reasons.length; i++) {
         if (i === 0) reason = `${reason}${suggestion.reasons[i]}`
-        else if (i === 1) reason = `${reason}, 并且${suggestion.reasons[i]}`
-        else reason = `${reason}, ${suggestion.reasons[i]}`
+        else if (i === 1) {
+          if (reason.endsWith(':')) {
+            reason = reason.substr(0, reason.length - 1)
+            reason = `${reason}, ${suggestion.reasons[i]}`
+          } else reason = `${reason}, 并且${suggestion.reasons[i]}`
+        } else reason = `${reason}, ${suggestion.reasons[i]}`
       }
       if (j === 0) t2 = `${t2}${reason}, ${suggestion.suggestion}`
       if (j === 1) {
@@ -702,8 +709,18 @@ function formatDaily2 (formatDailies) {
     let reason = ''
     for (let i = 0; i < reasons.length; i++) {
       if (i === 0) reason = `${reasons[i][1].join(', ')}${reasons[i][0]}`
-      else if (i === 1) reason = `${reason}, 同时${reasons[i][1].join(', ')}${reasons[i][0]}`
-      else reason = `${reason}, ${reasons[i][1].join(', ')}${reasons[i][0]}`
+      else if (i === 1 && !reason.endsWith(':')) {
+        reason = reasons[i][1].join(', ') === reasons[i - 1][1].join(', ')
+          ? `${reason}, 同时${reasons[i][0]}`
+          : `${reason}, 同时${reasons[i][1].join(', ')}${reasons[i][0]}`
+      } else {
+        if (reason.endsWith(':')) {
+          reason = reason.substr(0, reason.length - 1)
+        }
+        reason = reasons[i][1].join(', ') === reasons[i - 1][1].join(', ')
+          ? `${reason}, ${reasons[i][0]}`
+          : `${reason}, ${reasons[i][1].join(', ')}${reasons[i][0]}`
+      }
     }
     suggestionTexts.push(`今天${reason}, ${suggestion}`)
   }
