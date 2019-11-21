@@ -648,6 +648,20 @@ async function addWeatherPushCity (cid, chatId) {
   await store.save()
 }
 
+const weatherPushQueue = []
+async function triggerWeatherPush (cid) {
+  weatherPushQueue.push(cid)
+  if (weatherPushQueue.length === 1) {
+    runWeatherPushEventLoop()
+  }
+}
+async function runWeatherPushEventLoop () {
+  while (weatherPushQueue[0]) {
+    await weatherPush(weatherPushQueue[0])
+    weatherPushQueue.shift()
+  }
+}
+
 async function weatherPush (cid) {
   if (!store.state.weatherPush[cid]) return
   if (Object.keys(store.state.weatherPush[cid].chats).length === 0) {
@@ -738,12 +752,12 @@ async function checkAndScheduleWeatherPush (cid) {
   const srtd = new Date(`${today.date}T${today.sr}${toISOTZ(forecast.basic.tz)}`)
   const now = new Date()
   if (now < srtd) {
-    scheduleDateTime(today.date, today.sr, forecast.basic.tz, () => weatherPush(cid))
+    scheduleDateTime(today.date, today.sr, forecast.basic.tz, () => triggerWeatherPush(cid))
   } else {
     // today is the yesterday of tomorrow
     store.state.weatherPush[cid].yesterday = today
     await store.save()
-    scheduleDateTime(tomorrow.date, tomorrow.sr, forecast.basic.tz, () => weatherPush(cid))
+    scheduleDateTime(tomorrow.date, tomorrow.sr, forecast.basic.tz, () => triggerWeatherPush(cid))
   }
 }
 
