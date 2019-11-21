@@ -18,7 +18,20 @@ const client = new Twitter({
 
 const bot = new TelegramBot(process.env.TOKEN, { polling: true })
 
-bot.on('callback_query', async callbackQuery => {
+function topLevelTry (f) {
+  return async (...arg) => {
+    try {
+      const res = f(...arg)
+      if (res instanceof Promise) {
+        await res
+      }
+    } catch (err) {
+      statistic.spank(err)
+    }
+  }
+}
+
+bot.on('callback_query', topLevelTry(async callbackQuery => {
   if (!callbackQuery.message) {
     await bot.answerCallbackQuery(callbackQuery.id)
     return
@@ -223,9 +236,9 @@ bot.on('callback_query', async callbackQuery => {
   delete store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
   await store.save()
   await bot.answerCallbackQuery(callbackQuery.id)
-})
+}))
 
-bot.on('edited_message', async msg => {
+bot.on('edited_message', topLevelTry(async msg => {
   // bot command
   if (msg.entities && msg.entities.length &&
     msg.entities.findIndex(e => e.type === 'bot_command') !== -1) {
@@ -261,9 +274,9 @@ bot.on('edited_message', async msg => {
       { reply_to_message_id: msg.message_id }
     )
   }
-})
+}))
 
-bot.on('message', async msg => {
+bot.on('message', topLevelTry(async msg => {
   // bot command
   if (msg.entities && msg.entities.length &&
     msg.entities.findIndex(e => e.type === 'bot_command') !== -1) {
@@ -521,7 +534,7 @@ bot.on('message', async msg => {
       }
     }
   }
-})
+}))
 
 async function pushSession (sentMsg, cmd, data) {
   if (!store.state.session[sentMsg.chat.id + '']) {
@@ -657,7 +670,7 @@ async function triggerWeatherPush (cid) {
 }
 async function runWeatherPushEventLoop () {
   while (weatherPushQueue[0]) {
-    await weatherPush(weatherPushQueue[0])
+    await topLevelTry(weatherPush)(weatherPushQueue[0])
     weatherPushQueue.shift()
   }
 }
