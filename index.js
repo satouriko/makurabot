@@ -450,6 +450,25 @@ bot.on('message', topLevelTry(async msg => {
       return
     }
 
+    if (cmd === '/toggle_notification') {
+      if (!store.state.notification[msg.chat.id + '']) {
+        store.state.notification[msg.chat.id + ''] = {}
+      }
+      if (!store.state.notification[msg.chat.id + ''].disabled) {
+        store.state.notification[msg.chat.id + ''].disabled = true
+        await store.save()
+        await bot.sendMessage(msg.chat.id, '打扰了, 非常抱歉ヽ(*。>Д<)o゜ 妹抖酱 参上', {
+          reply_to_message_id: msg.message_id
+        })
+      } else {
+        store.state.notification[msg.chat.id + ''].disabled = false
+        await store.save()
+        await bot.sendMessage(msg.chat.id, '(*ෆ´ ˘ `ෆ*)♡ 妹抖酱 参上', {
+          reply_to_message_id: msg.message_id
+        })
+      }
+    }
+
     if (msg.chat.type === 'private') await defaultReply(bot, msg)
     return
   }
@@ -728,6 +747,7 @@ async function weatherPush (cid) {
       const sentMsg = await bot.sendMessage(chatId,
         toSend,
         {
+          disable_notification: store.state.notification[chatId] && store.state.notification[chatId].disabled,
           reply_markup: {
             inline_keyboard: [
               [{ text: '早', callback_data: "mornin'" }]

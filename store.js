@@ -3,7 +3,7 @@ const fs = require('fs')
 class Store {
   constructor () {
     let store
-    const initStore = { weather: {}, weatherPush: {}, pushedWeatherMsg: {}, session: {} }
+    const initStore = { weather: {}, weatherPush: {}, notification: {}, pushedWeatherMsg: {}, session: {} }
     this.storePath = '/data/store.json'
     if (fs.existsSync(this.storePath)) {
       try {
@@ -12,6 +12,7 @@ class Store {
         console.error('failed to parse store: ', err)
         store = initStore
       }
+      if (!store.notification) store.notification = {} // update migration
       if (!store.session) store.session = {} // update migration
       if (!store.weatherPush) store.weatherPush = {} // update migration
       if (!store.pushedWeatherMsg) store.pushedWeatherMsg = {} // update migration
