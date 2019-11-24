@@ -482,7 +482,7 @@ weatherConditions.others = {
     ja: '寒い'
   },
   999: {
-    emoji: '\ud83d\ude44\ufe0f',
+    emoji: '\ud83d\ude36\ufe0f',
     zh: '未知',
     en: 'Unknown',
     ja: '不明'
@@ -497,9 +497,9 @@ emojiList.wind = '\ud83c\udf2c\ud83d\udca8\ud83c\udf00\ud83c\udf2a'
 emojiList.rain = '\ud83c\udf26\ud83c\udf27\u26c8\u2744'
 emojiList.snow = '\ud83c\udf28\u2614\u2603'
 emojiList.fog = '\ud83c\udf2b\u267e\ud83d\udcb2\ud83c\udf01'
-emojiList.others = '\ud83e\udd75\ud83e\udd76\ud83d\ude44'
+emojiList.others = '\ud83e\udd75\ud83e\udd76\ud83d\ude36'
 
-const promptEmojiList = '\ud83c\udf19\ufe0f\u2601\ufe0f\ud83c\udf2c\ufe0f\ud83c\udf27\ufe0f\ud83c\udf28\ufe0f\ud83c\udf2b\ufe0f\ud83d\ude44\ufe0f'
+const promptEmojiList = '\ud83c\udf19\ufe0f\u2601\ufe0f\ud83c\udf2c\ufe0f\ud83c\udf27\ufe0f\ud83c\udf28\ufe0f\ud83c\udf2b\ufe0f\ud83d\ude36\ufe0f'
 
 function formatLegend (queryEmoji, lang) {
   queryEmoji = queryEmoji.replace(/[\ufe0e\ufe0f]/g, '')
