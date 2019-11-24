@@ -15,7 +15,7 @@ async function heweather6 (req, retryCnt) {
   )
   try {
     res = await fetch(
-        `https://free-api.heweather.net/s6/weather/${req}&key=${process.env.HEWEATHER_KEY}`,
+        `https://heweather-free-api.cool2645.com/s6/weather/${req}&key=${process.env.HEWEATHER_KEY}`,
         { signal: controller.signal }
     )
   } catch (err) {
