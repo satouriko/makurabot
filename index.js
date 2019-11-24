@@ -690,6 +690,7 @@ async function triggerWeatherPush (cid) {
 async function runWeatherPushEventLoop () {
   while (weatherPushQueue[0]) {
     await topLevelTry(weatherPush)(weatherPushQueue[0])
+    await new Promise(resolve => { setTimeout(resolve, 60000) })
     weatherPushQueue.shift()
   }
 }
@@ -703,21 +704,11 @@ async function weatherPush (cid) {
   }
   const { chats, yesterday } = store.state.weatherPush[cid]
   let forecast
-  let retryCnt = 4
-  while (true) {
-    try {
-      forecast = await getWeatherForecast(cid, 'zh')
-      break
-    } catch (err) {
-      if (retryCnt > 0 && err.name === 'TimeoutError') retryCnt--
-      else {
-        console.warn('skipped weather push due to error')
-        delete store.state.weatherPush[cid].yesterday
-        await store.save()
-        checkAndScheduleWeatherPush(cid)
-        return
-      }
-    }
+  try {
+    forecast = await getWeatherForecast(cid, 'zh')
+  } catch (err) {
+    weatherPushQueue.push(cid)
+    return
   }
   const f1 = formatDaily(forecast.daily_forecast[0], yesterday, forecast.basic)
   const expireAt = new Date(`${forecast.daily_forecast[0].date}T12:00${toISOTZ(forecast.basic.tz)}`)
