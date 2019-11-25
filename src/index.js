@@ -288,8 +288,11 @@ bot.on('message', topLevelTry(async msg => {
     }
 
     if (cmd === '/about') {
+      const pants = process.env.COMMIT_SHA
+        ? `[今天穿的胖次](https://github.com/rikakomoe/makurabot/tree/${process.env.COMMIT_SHA})`
+        : `[胖次](https://github.com/rikakomoe/makurabot)`
       await bot.sendMessage(msg.chat.id,
-        `◎ 公用女仆绒布球兼梨子前辈的私人助理天气酱\n◎ 可播报天气\n◎ 私聊咱可代为主人传达消息\n◎ [胖次](https://github.com/rikakomoe/makurabot)\n◎ 原型是[东风谷早苗](https://zh.moegirl.org/zh-hans/%E4%B8%9C%E9%A3%8E%E8%B0%B7%E6%97%A9%E8%8B%97)\n\n${statistic}\n\n妹抖酱 参上`,
+        `◎ 公用女仆绒布球兼梨子前辈的私人助理天气酱\n◎ 可播报天气\n◎ 私聊咱可代为主人传达消息\n◎ ${pants}\n◎ 原型是[东风谷早苗](https://zh.moegirl.org/zh-hans/%E4%B8%9C%E9%A3%8E%E8%B0%B7%E6%97%A9%E8%8B%97)\n\n${statistic}\n\n妹抖酱 参上`,
         {
           parse_mode: 'Markdown'
         }
