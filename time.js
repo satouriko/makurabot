@@ -18,7 +18,19 @@ function toTZOffset (tzStr) {
   return -60 * +tzStr
 }
 
+/**
+ * getLocalDate
+ * @param  {string} tzStr Timezone in format of '-7.00'
+ * @return {string}       Date in format of '2019-11-25
+ */
+function getLocalDate (tzStr) {
+  const now = new Date()
+  now.setMinutes(now.getMinutes() - toTZOffset(tzStr))
+  return now.toISOString().split('T')[0]
+}
+
 module.exports = {
   toISOTZ,
-  toTZOffset
+  toTZOffset,
+  getLocalDate
 }

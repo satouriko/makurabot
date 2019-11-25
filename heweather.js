@@ -1,9 +1,13 @@
 const AbortController = require('abort-controller')
 const fetch = require('node-fetch')
-const { toISOTZ } = require('./time')
+const { toISOTZ, getLocalDate } = require('./time')
 const statistic = require('./statistic')
 
 const heweatherCache = {}
+
+const cloneDeep = (obj) => {
+  return JSON.parse(JSON.stringify(obj))
+}
 
 async function heweather6 (req, retryCnt) {
   if (retryCnt === undefined) retryCnt = 5
@@ -84,7 +88,23 @@ async function forecast (loc, lang) {
       return cache
     }
   }
-  const result = await getFirst(`forecast?location=${encodeURIComponent(loc)}&lang=${encodeURIComponent(lang)}`)
+  const originalResult = await getFirst(`forecast?location=${encodeURIComponent(loc)}&lang=${encodeURIComponent(lang)}`)
+  // make sure daily_forecast[0] is today
+  const result = cloneDeep(originalResult)
+  const localDate = getLocalDate(result.basic.tz)
+  for (let i = 0; i < result.daily_forecast.length;) {
+    if (result.daily_forecast[i].date !== localDate) {
+      console.warn(`${new Date().toISOString()}\tHow could you do that to me???`)
+      console.warn(JSON.stringify(originalResult))
+      result.daily_forecast.splice(i, 1)
+    } else break
+  }
+  if (result.daily_forecast.length < 2) {
+    const err = new Error(JSON.stringify(originalResult))
+    err.name = 'InsufficientForecastError'
+    statistic.spank(err)
+    throw err
+  }
   heweatherCache[`forecast://${loc}`] = result
   heweatherCache[`basic://${loc},${lang}`] = result.basic
   return result

@@ -21,10 +21,11 @@ const bot = new TelegramBot(process.env.TOKEN, { polling: true })
 function topLevelTry (f) {
   return async (...arg) => {
     try {
-      const res = f(...arg)
+      let res = f(...arg)
       if (res instanceof Promise) {
-        await res
+        res = await res
       }
+      return res
     } catch (err) {
       statistic.spank(err)
     }
@@ -689,7 +690,7 @@ async function triggerWeatherPush (cid) {
 }
 async function runWeatherPushEventLoop () {
   while (weatherPushQueue[0]) {
-    await topLevelTry(weatherPush)(weatherPushQueue[0])
+    await weatherPush(weatherPushQueue[0])
     await new Promise(resolve => { setTimeout(resolve, 60000) })
     weatherPushQueue.shift()
   }
@@ -707,7 +708,11 @@ async function weatherPush (cid) {
   try {
     forecast = await getWeatherForecast(cid, 'zh')
   } catch (err) {
-    weatherPushQueue.push(cid)
+    if (err.name === 'InsufficientForecastError') { // retry in an hour
+      setTimeout(() => triggerWeatherPush(cid), 3600000)
+    } else { // retry in a minute
+      weatherPushQueue.push(cid)
+    }
     return
   }
   const f1 = formatDaily(forecast.daily_forecast[0], yesterday, forecast.basic)
@@ -758,7 +763,6 @@ async function weatherPush (cid) {
       statistic.spank(err)
     }
   }
-  store.state.weatherPush[cid].yesterday = forecast.daily_forecast[0]
   await store.save()
   checkAndScheduleWeatherPush(cid)
 }
@@ -768,7 +772,11 @@ async function checkAndScheduleWeatherPush (cid) {
   try {
     forecast = await getWeatherForecast(cid, 'zh')
   } catch (err) {
-    setTimeout(() => checkAndScheduleWeatherPush(cid), 60000)
+    if (err.name === 'InsufficientForecastError') { // retry in an hour
+      setTimeout(() => checkAndScheduleWeatherPush(cid), 3600000)
+    } else { // retry in a minute
+      setTimeout(() => checkAndScheduleWeatherPush(cid), 60000)
+    }
     return
   }
   const today = forecast.daily_forecast[0]
