@@ -97,6 +97,7 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
 
   if (cmd === '/album') {
     const r3 = [
+      'AgADBQADuqoxGwl0iVfttrp1RHI96HkvGzMABAEAAwIAA3gAA4JeAQABFgQ',
       'AgADBQADxqgxG5pRmFatjowKDEaSnAyEAjMABAEAAwIAA3kAA-CCBQABFgQ',
       'AgADBQADgKoxG17amFa0n08rpj5_oqIxGzMABAEAAwIAA3kAA51ZAAIWBA',
       'AgADBQADxagxG5pRmFbfj8GayajUHruJAjMABAEAAwIAA3kAA7iLBQABFgQ',
@@ -104,11 +105,11 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
       'AgADBQADxKgxG5pRmFaxWYIt5wF6I9AXGzMABAEAAwIAA3kAA5tZAAIWBA',
       'AgADBQADEakxG4zSiFYqCMpqZKHPBMGAAjMABAEAAwIAA3kAAwhtBQABFgQ',
       'AgADBQADEKkxG4zSiFbz586GAs8DLoYzGzMABAEAAwIAA3kAAylEAAIWBA',
-      'AgADBQADD6kxG4zSiFYtucZTOKaivtSHAjMABAEAAwIAA3kAA7N1BQABFgQ',
       'AgADBQADw6gxG5pRmFbYl0Jyxmbyt4ktGzMABAEAAwIAA3kAA89YAAIWBA',
       'AgADBQADfqoxG17amFbq0gnuXYyqIdQhGzMABAEAAwIAA3gAAxhbAAIWBA'
     ]
     const r15 = [
+      'AgADBQADu6oxGwl0iVd4bGlK6bO77UQfGzMABAEAAwIAA3kAA_ZeAQABFgQ',
       'AgADBQADEqkxG4zSiFauKsyEHW_-LBQ0GzMABAEAAwIAA3kAA39FAAIWBA',
       'AgADBQADkKkxGyYhiVaInczSkHYfknqFAjMABAEAAwIAA3kAA09uBQABFgQ',
       'AgADBQADFKkxG4zSiFbeRT0Mt1wbEIqMAjMABAEAAwIAA3kAAwRyBQABFgQ',
@@ -116,7 +117,6 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
       'AgADBQADF6kxG4zSiFYgeyqH7I5yRRguGzMABAEAAwIAA3kAAwJGAAIWBA',
       'AgADBQADgaoxG17amFaEkbGpylkizGAyGzMABAEAAwIAA3kAA8xZAAIWBA',
       'AgADBQADi6oxG17amFbEUlYUIaL-KNkfGzMABAEAAwIAA3kAA-laAAIWBA',
-      'AgADBQADFakxG4zSiFbco-vY2HWTgpsnGzMABAEAAwIAA3kAA3BEAAIWBA',
       'AgADBQADpqkxGyYhkVYGjBevxgQpab4RGzMABAEAAwIAA3kAA5lZAAIWBA',
       'AgADBQADgqoxG17amFY6sp5NbPtMUd2KAjMABAEAAwIAA3kAAz2JBQABFgQ'
     ]
