@@ -230,20 +230,19 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
         callbackQuery.message.reply_to_message.message_id
       )
       let text = callbackQuery.message.text
-      for (const entity of callbackQuery.message.entities) {
-        if (entity.type === 'text_mention') {
-          const userId = entity.user.id
-          text = text.replace(userId + '', `[${userId}](tg://user?id=${userId})`)
-          text = `#反馈 ${text}`
-          await bot.sendMessage(
-            +process.env.GM2,
-            text,
-            {
-              reply_to_message_id: fwdMsg.message_id,
-              parse_mode: 'Markdown'
-            }
-          )
-        }
+      const matches = /来自用户 ([0-9]+) ,/g.exec(callbackQuery.message.text)
+      if (matches && +matches[1]) {
+        const userId = +matches[1]
+        text = text.replace(userId + '', `[${userId}](tg://user?id=${userId})`)
+        text = `#反馈 ${text}`
+        await bot.sendMessage(
+          +process.env.GM2,
+          text,
+          {
+            reply_to_message_id: fwdMsg.message_id,
+            parse_mode: 'Markdown'
+          }
+        )
       }
       await bot.deleteMessage(
         callbackQuery.message.chat.id,
@@ -558,24 +557,22 @@ bot.on('message', topLevelTry(async msg => {
     }
   }
 
-  if (msg.reply_to_message && (
+  if (msg.reply_to_message && !msg.reply_to_message.forward_from && (
     msg.chat.id === +process.env.GM2 ||
     msg.chat.id === +process.env.GM0
   )) {
-    if (msg.text && msg.reply_to_message.entities) {
-      for (const entity of msg.reply_to_message.entities) {
-        if (entity.type === 'text_mention') {
-          await bot.sendMessage(entity.user.id, msg.text)
-          await bot.sendMessage(
-            msg.chat.id,
-            `已投递给 [${entity.user.id}](tg://user?id=${entity.user.id}).`,
-            {
-              reply_to_message_id: msg.message_id,
-              parse_mode: 'Markdown'
-            }
-          )
+    const matches = /来自用户 ([0-9]+) ,/g.exec(msg.reply_to_message.text)
+    if (matches && +matches[1]) {
+      const userId = +matches[1]
+      await bot.sendMessage(userId, msg.text)
+      await bot.sendMessage(
+        msg.chat.id,
+        `已投递给 [${userId}](tg://user?id=${userId}).`,
+        {
+          reply_to_message_id: msg.message_id,
+          parse_mode: 'Markdown'
         }
-      }
+      )
     } else {
       await defaultReply(bot, msg)
     }
