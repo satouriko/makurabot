@@ -66,14 +66,15 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
       chat_id: callbackQuery.message.chat.id,
       message_id: callbackQuery.message.message_id
     })
-    const result = await bot.editMessageText(
-      '会话已过期, 请重新请求. 给您带来不便十分抱歉. 妹抖酱 参上',
-      {
-        chat_id: callbackQuery.message.chat.id,
-        message_id: callbackQuery.message.message_id
-      }
-    )
-    if (result === true) {
+    if (callbackQuery.message.text) {
+      await bot.editMessageText(
+        '会话已过期, 请重新请求. 给您带来不便十分抱歉. 妹抖酱 参上',
+        {
+          chat_id: callbackQuery.message.chat.id,
+          message_id: callbackQuery.message.message_id
+        }
+      )
+    } else {
       await bot.editMessageCaption(
         '会话已过期, 请重新请求. 给您带来不便十分抱歉. 妹抖酱 参上',
         {
