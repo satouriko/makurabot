@@ -54,15 +54,6 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
     return
   }
 
-  if (callbackQuery.message.reply_to_message &&
-    callbackQuery.from.id !== callbackQuery.message.reply_to_message.from.id) {
-    await bot.answerCallbackQuery(callbackQuery.id, {
-      text: '不要碰那里!(｡◕ˇ﹏ˇ◕）对, 对不起, 请原谅我的失礼. 妹抖酱 参上',
-      show_alert: true
-    })
-    return
-  }
-
   let session
   if (store.state.session[callbackQuery.message.chat.id + ''] &&
     store.state.session[callbackQuery.message.chat.id + ''][callbackQuery.message.message_id]
@@ -94,6 +85,15 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
     return
   }
   const { cmd, data } = session
+
+  if (cmd !== 'action' && callbackQuery.message.reply_to_message &&
+    callbackQuery.from.id !== callbackQuery.message.reply_to_message.from.id) {
+    await bot.answerCallbackQuery(callbackQuery.id, {
+      text: '不要碰那里!(｡◕ˇ﹏ˇ◕）对, 对不起, 请原谅我的失礼. 妹抖酱 参上',
+      show_alert: true
+    })
+    return
+  }
 
   if (cmd === '/album') {
     const r3 = [
@@ -222,6 +222,46 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
     return
   }
 
+  if (cmd === 'action') {
+    if (callbackQuery.data === 'move to nekogram dev') {
+      const fwdMsg = await bot.forwardMessage(
+        +process.env.GM2,
+        callbackQuery.message.chat.id,
+        callbackQuery.message.reply_to_message.message_id
+      )
+      let text = callbackQuery.message.text
+      for (const entity of callbackQuery.message.entities) {
+        if (entity.type === 'text_mention') {
+          const userId = entity.user.id
+          text = text.replace(userId + '', `[${userId}](tg://user?id=${userId})`)
+          text = `#反馈 ${text}`
+          await bot.sendMessage(
+            +process.env.GM2,
+            text,
+            {
+              reply_to_message_id: fwdMsg.message_id,
+              parse_mode: 'Markdown'
+            }
+          )
+        }
+      }
+      await bot.deleteMessage(
+        callbackQuery.message.chat.id,
+        callbackQuery.message.reply_to_message.message_id
+      )
+      await bot.deleteMessage(
+        callbackQuery.message.chat.id,
+        callbackQuery.message.message_id
+      )
+    }
+    if (callbackQuery.data === 'cancel') {
+      await bot.editMessageReplyMarkup(null, {
+        chat_id: callbackQuery.message.chat.id,
+        message_id: callbackQuery.message.message_id
+      })
+    }
+  }
+
   if (cmd === 'plain_text') {
     if (callbackQuery.data !== 'cancel') {
       const fwdMsg = await bot.forwardMessage(
@@ -229,14 +269,24 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
         callbackQuery.message.chat.id,
         callbackQuery.message.reply_to_message.message_id
       )
-      await bot.sendMessage(
+      const sentMsg = await bot.sendMessage(
         +process.env.GM0,
         `来自用户 [${callbackQuery.from.id}](tg://user?id=${callbackQuery.from.id}) , 转发授权: ${callbackQuery.data}`,
         {
           reply_to_message_id: fwdMsg.message_id,
-          parse_mode: 'Markdown'
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [[{
+              text: '\ud83d\udce4\ufe0f\ud83d\udc31\ufe0f\ud83d\uddde\ufe0f\ud83d\udc77\ufe0f',
+              callback_data: 'move to nekogram dev'
+            }, {
+              text: '\ud83d\udeab\ufe0f',
+              callback_data: 'cancel'
+            }]]
+          }
         }
       )
+      await pushSession(sentMsg, 'action')
     }
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
@@ -504,75 +554,81 @@ bot.on('message', topLevelTry(async msg => {
         text,
         { reply_to_message_id: msg.message_id }
       )
+      return
     }
+  }
+
+  if (msg.reply_to_message && (
+    msg.chat.id === +process.env.GM2 ||
+    msg.chat.id === +process.env.GM0
+  )) {
+    if (msg.text && msg.reply_to_message.entities) {
+      for (const entity of msg.reply_to_message.entities) {
+        if (entity.type === 'text_mention') {
+          await bot.sendMessage(entity.user.id, msg.text)
+          await bot.sendMessage(
+            msg.chat.id,
+            `已投递给 [${entity.user.id}](tg://user?id=${entity.user.id}).`,
+            {
+              reply_to_message_id: msg.message_id,
+              parse_mode: 'Markdown'
+            }
+          )
+        }
+      }
+    } else {
+      await defaultReply(bot, msg)
+    }
+    return
+  }
+
+  if (msg.chat.id === +process.env.GM0) {
+    // send twitter
+    if (msg.text) {
+      let tweet
+      try {
+        tweet = await client.post('statuses/update', { status: msg.text })
+      } catch (err) {
+        statistic.spank(err)
+        await bot.sendMessage(msg.chat.id,
+            `推文发送失败. ${err.toString()}`,
+            { reply_to_message_id: msg.message_id }
+        )
+        return
+      }
+      await bot.sendMessage(msg.chat.id,
+          `推文已发送. https://twitter.com/${tweet.user.screen_name}/status/${tweet.id_str}`,
+          { reply_to_message_id: msg.message_id }
+      )
+    } else {
+      console.log(msg)
+      await bot.sendMessage(msg.chat.id,
+        '暂不支持这种格式的推文.',
+        { reply_to_message_id: msg.message_id }
+      )
+    }
+    return
   }
 
   if (msg.chat.type !== 'private') return
 
   // not me
-  if (msg.chat.id !== +process.env.GM0) {
-    const sentMsg = await bot.sendMessage(msg.chat.id,
-      '妹抖酱将把主人大人的重要指示上报到 [MMM](https://scleox.github.io/Wearable-Technology/#%E9%81%93%E5%85%B7%E9%9B%86/%E7%8E%B0%E4%BB%A3%E5%A5%B3%E4%BB%86%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F.html) (Modern Maid Manager, 现代女仆管理系统), 在此之前, 请您先回答问题\n\n您将如何授权 MMM 及其委托方使用您的消息',
-      {
-        parse_mode: 'Markdown',
-        disable_web_page_preview: true,
-        reply_to_message_id: msg.message_id,
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '可以引用我的名字转发', callback_data: 'quote fwd' }],
-            [{ text: '可以转发内容, 不要提我', callback_data: 'anonymous fwd' }],
-            [{ text: '请勿转发', callback_data: 'no fwd' }, { text: '算了', callback_data: 'cancel' }]
-          ]
-        }
-      }
-    )
-    await pushSession(sentMsg, 'plain_text')
-  } else {
-    if (msg.reply_to_message) {
-      if (msg.text && msg.reply_to_message.entities) {
-        for (const entity of msg.reply_to_message.entities) {
-          if (entity.type === 'text_mention') {
-            await bot.sendMessage(entity.user.id, msg.text)
-            await bot.sendMessage(
-              msg.chat.id,
-              `已投递给 [${entity.user.id}](tg://user?id=${entity.user.id}).`,
-              {
-                reply_to_message_id: msg.message_id,
-                parse_mode: 'Markdown'
-              }
-            )
-          }
-        }
-      } else {
-        await defaultReply(bot, msg)
-      }
-    } else {
-      // send twitter
-      if (msg.text) {
-        let tweet
-        try {
-          tweet = await client.post('statuses/update', { status: msg.text })
-        } catch (err) {
-          statistic.spank(err)
-          await bot.sendMessage(msg.chat.id,
-            `推文发送失败. ${err.toString()}`,
-            { reply_to_message_id: msg.message_id }
-          )
-          return
-        }
-        await bot.sendMessage(msg.chat.id,
-          `推文已发送. https://twitter.com/${tweet.user.screen_name}/status/${tweet.id_str}`,
-          { reply_to_message_id: msg.message_id }
-        )
-      } else {
-        console.log(msg)
-        await bot.sendMessage(msg.chat.id,
-          '暂不支持这种格式的推文.',
-          { reply_to_message_id: msg.message_id }
-        )
+  const sentMsg = await bot.sendMessage(msg.chat.id,
+    '妹抖酱将把主人大人的重要指示上报到 [MMM](https://scleox.github.io/Wearable-Technology/#%E9%81%93%E5%85%B7%E9%9B%86/%E7%8E%B0%E4%BB%A3%E5%A5%B3%E4%BB%86%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F.html) (Modern Maid Manager, 现代女仆管理系统), 在此之前, 请您先回答问题\n\n您将如何授权 MMM 及其委托方使用您的消息',
+    {
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true,
+      reply_to_message_id: msg.message_id,
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '可以引用我的名字转发', callback_data: 'quote fwd' }],
+          [{ text: '可以转发内容, 不要提我', callback_data: 'anonymous fwd' }],
+          [{ text: '请勿转发', callback_data: 'no fwd' }, { text: '算了', callback_data: 'cancel' }]
+        ]
       }
     }
-  }
+  )
+  await pushSession(sentMsg, 'plain_text')
 }))
 
 async function pushSession (sentMsg, cmd, data) {
