@@ -608,7 +608,26 @@ bot.on('message', topLevelTry(async msg => {
     return
   }
 
-  if (msg.chat.type !== 'private') return
+  if (msg.chat.type !== 'private') {
+    if (msg.new_chat_members ||
+        msg.left_chat_member ||
+        msg.new_chat_title ||
+        msg.delete_chat_photo ||
+        msg.group_chat_created ||
+        msg.supergroup_chat_created ||
+        msg.channel_chat_created ||
+        msg.migrate_to_chat_id ||
+        msg.migrate_from_chat_id ||
+        msg.pinned_message
+    ) {
+      try {
+        await bot.deleteMessage(msg.chat.id, msg.message_id)
+      } catch (e) {
+        console.log(e)
+      }
+    }
+    return
+  }
 
   // not me
   const sentMsg = await bot.sendMessage(msg.chat.id,
