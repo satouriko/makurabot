@@ -706,7 +706,7 @@ async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
       }
       try {
         const weatherNow = await getWeatherNow(cid, lang)
-        const weatherForecast = await getWeatherForecast(cid, 'zh')
+        const weatherForecast = await getWeatherForecast(cid, 'zh', true)
         const formattedWeather = formatWeather(weatherNow, weatherForecast)
         cityWeathers.push({
           cid,
@@ -798,7 +798,7 @@ async function weatherPush (cid) {
   const { chats, yesterday } = store.state.weatherPush[cid]
   let forecast
   try {
-    forecast = await getWeatherForecast(cid, 'zh')
+    forecast = await getWeatherForecast(cid, 'zh', true)
   } catch (err) {
     if (err.name === 'InsufficientForecastError') { // retry in an hour
       setTimeout(() => triggerWeatherPush(cid), 3600000)

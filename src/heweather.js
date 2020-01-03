@@ -76,7 +76,7 @@ async function now (loc, lang) {
   return result
 }
 
-async function forecast (loc, lang) {
+async function forecast (loc, lang, todayOnly) {
   const cache = heweatherCache[`forecast://${loc}`]
   const basicCache = heweatherCache[`basic://${loc},${lang}`]
   if (cache && basicCache) {
@@ -100,10 +100,14 @@ async function forecast (loc, lang) {
     } else break
   }
   if (result.daily_forecast.length < 2) {
-    const err = new Error(JSON.stringify(originalResult))
-    err.name = 'InsufficientForecastError'
-    statistic.spank(err)
-    throw err
+    if (todayOnly && result.daily_forecast.length === 1) {
+      return result
+    } else {
+      const err = new Error(JSON.stringify(originalResult.daily_forecast.map(f => f.date)))
+      err.name = 'InsufficientForecastError'
+      statistic.spank(err)
+      throw err
+    }
   }
   heweatherCache[`forecast://${loc}`] = result
   heweatherCache[`basic://${loc},${lang}`] = result.basic
