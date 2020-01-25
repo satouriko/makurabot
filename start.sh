@@ -5,7 +5,7 @@ source .env
 docker run -d --restart=always \
   --name makurabot \
   --mount type=volume,src=makurabot-data,dst=/data \
-  -e GM0="$GM0" -e GM1="$GM1" -e GM2="$GM2" -e TOKEN="$TOKEN" \
+  -e GM0="$GM0" -e GM1="$GM1" -e TOKEN="$TOKEN" \
   -e TWITTER_CONSUMER_KEY="$TWITTER_CONSUMER_KEY" \
   -e TWITTER_CONSUMER_SECRET="$TWITTER_CONSUMER_SECRET" \
   -e TWITTER_ACCESS_TOKEN_KEY="$TWITTER_ACCESS_TOKEN_KEY" \
