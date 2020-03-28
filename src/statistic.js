@@ -5,7 +5,7 @@ class Statistic {
   }
 
   spank (err) {
-    console.error(`${new Date().toISOString()}\t${err}`)
+    console.error(`${new Date().toISOString()}\t${JSON.stringify(err)}`)
     this.errorCount++
   }
 

@@ -545,7 +545,6 @@ bot.on('message', topLevelTry(async msg => {
       try {
         await bot.deleteMessage(msg.chat.id, msg.message_id)
       } catch (e) {
-        console.log(e)
       }
     }
     return
