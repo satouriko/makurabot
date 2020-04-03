@@ -547,6 +547,14 @@ bot.on('message', topLevelTry(async msg => {
       } catch (e) {
       }
     }
+    if (msg.from.id.toString() === '666378340') {
+      if (+new Date() < +new Date('2020-07-08T17:00+08:00')) {
+        await bot.deleteMessage(msg.chat.id, msg.message_id)
+        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 404)
+        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 405)
+        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 406)
+      }
+    }
     return
   }
 
