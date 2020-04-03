@@ -9,6 +9,8 @@ const { getWeatherNow, getWeatherForecast, queryCity } = require('./heweather')
 const { formatWeather, formatLegend, formatDaily, formatDaily2 } = require('./format_weather')
 const { scheduleDateTime } = require('./schedule')
 
+const lastMoecc = {}
+
 const client = new Twitter({
   consumer_key: process.env.TWITTER_CONSUMER_KEY,
   consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
@@ -546,14 +548,32 @@ bot.on('message', topLevelTry(async msg => {
         await bot.deleteMessage(msg.chat.id, msg.message_id)
       } catch (e) {
       }
+      return
     }
     if (msg.from.id.toString() === '666378340') {
       if (+new Date() < +new Date('2020-07-08T17:00+08:00')) {
         await bot.deleteMessage(msg.chat.id, msg.message_id)
-        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 404)
-        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 405)
-        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 406)
+        if (!lastMoecc[msg.chat.id.toString()]) {
+          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 404)
+          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 405)
+          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 406)
+          lastMoecc[msg.chat.id.toString()] = {
+            lastMessageTime: +new Date(),
+            coolDown: 20
+          }
+        } else {
+          if (+new Date() - lastMoecc[msg.chat.id.toString()] > 5 * 1000 * 60 &&
+            lastMoecc[msg.chat.id.toString()].coolDown <= 0) {
+            await bot.forwardMessage(msg.chat.id, +process.env.GM2, 404)
+            await bot.forwardMessage(msg.chat.id, +process.env.GM2, 405)
+            await bot.forwardMessage(msg.chat.id, +process.env.GM2, 406)
+            lastMoecc[msg.chat.id.toString()].lastMessageTime = +new Date()
+            lastMoecc[msg.chat.id.toString()].coolDown = 20
+          }
+        }
       }
+    } else if (lastMoecc[msg.chat.id.toString()]) {
+      lastMoecc[msg.chat.id.toString()].coolDown--
     }
     return
   }
