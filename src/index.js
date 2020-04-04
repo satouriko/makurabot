@@ -269,6 +269,32 @@ bot.on('edited_message', topLevelTry(async msg => {
 }))
 
 bot.on('message', topLevelTry(async msg => {
+  if (msg.from.id.toString() === '666378340') {
+    if (+new Date() < +new Date('2020-07-08T17:00+08:00')) {
+      await bot.deleteMessage(msg.chat.id, msg.message_id)
+      if (!lastMoecc[msg.chat.id.toString()]) {
+        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 404)
+        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 405)
+        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 406)
+        lastMoecc[msg.chat.id.toString()] = {
+          lastMessageTime: +new Date(),
+          coolDown: 20
+        }
+      } else {
+        if (+new Date() - lastMoecc[msg.chat.id.toString()] > 5 * 1000 * 60 &&
+          lastMoecc[msg.chat.id.toString()].coolDown <= 0) {
+          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 404)
+          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 405)
+          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 406)
+          lastMoecc[msg.chat.id.toString()].lastMessageTime = +new Date()
+          lastMoecc[msg.chat.id.toString()].coolDown = 20
+        }
+      }
+      return
+    }
+  } else if (lastMoecc[msg.chat.id.toString()]) {
+    lastMoecc[msg.chat.id.toString()].coolDown--
+  }
   // bot command
   if (msg.entities && msg.entities.length &&
     msg.entities.findIndex(e => e.type === 'bot_command') !== -1) {
@@ -549,31 +575,6 @@ bot.on('message', topLevelTry(async msg => {
       } catch (e) {
       }
       return
-    }
-    if (msg.from.id.toString() === '666378340') {
-      if (+new Date() < +new Date('2020-07-08T17:00+08:00')) {
-        await bot.deleteMessage(msg.chat.id, msg.message_id)
-        if (!lastMoecc[msg.chat.id.toString()]) {
-          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 404)
-          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 405)
-          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 406)
-          lastMoecc[msg.chat.id.toString()] = {
-            lastMessageTime: +new Date(),
-            coolDown: 20
-          }
-        } else {
-          if (+new Date() - lastMoecc[msg.chat.id.toString()] > 5 * 1000 * 60 &&
-            lastMoecc[msg.chat.id.toString()].coolDown <= 0) {
-            await bot.forwardMessage(msg.chat.id, +process.env.GM2, 404)
-            await bot.forwardMessage(msg.chat.id, +process.env.GM2, 405)
-            await bot.forwardMessage(msg.chat.id, +process.env.GM2, 406)
-            lastMoecc[msg.chat.id.toString()].lastMessageTime = +new Date()
-            lastMoecc[msg.chat.id.toString()].coolDown = 20
-          }
-        }
-      }
-    } else if (lastMoecc[msg.chat.id.toString()]) {
-      lastMoecc[msg.chat.id.toString()].coolDown--
     }
     return
   }
