@@ -281,7 +281,7 @@ bot.on('message', topLevelTry(async msg => {
           coolDown: 20
         }
       } else {
-        if (+new Date() - lastMoecc[msg.chat.id.toString()] > 5 * 1000 * 60 &&
+        if (+new Date() - lastMoecc[msg.chat.id.toString()].lastMessageTime > 5 * 1000 * 60 &&
           lastMoecc[msg.chat.id.toString()].coolDown <= 0) {
           await bot.forwardMessage(msg.chat.id, +process.env.GM2, 404)
           await bot.forwardMessage(msg.chat.id, +process.env.GM2, 405)
@@ -559,23 +559,6 @@ bot.on('message', topLevelTry(async msg => {
   }
 
   if (msg.chat.type !== 'private') {
-    if (msg.new_chat_members ||
-        msg.left_chat_member ||
-        msg.new_chat_title ||
-        msg.delete_chat_photo ||
-        msg.group_chat_created ||
-        msg.supergroup_chat_created ||
-        msg.channel_chat_created ||
-        msg.migrate_to_chat_id ||
-        msg.migrate_from_chat_id ||
-        msg.pinned_message
-    ) {
-      try {
-        await bot.deleteMessage(msg.chat.id, msg.message_id)
-      } catch (e) {
-      }
-      return
-    }
     return
   }
 
