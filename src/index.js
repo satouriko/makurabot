@@ -9,8 +9,6 @@ const { getWeatherNow, getWeatherForecast, queryCity } = require('./heweather')
 const { formatWeather, formatLegend, formatDaily, formatDaily2 } = require('./format_weather')
 const { scheduleDateTime } = require('./schedule')
 
-const lastMoecc = {}
-
 const client = new Twitter({
   consumer_key: process.env.TWITTER_CONSUMER_KEY,
   consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
@@ -70,7 +68,7 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
     })
     if (callbackQuery.message.text) {
       await bot.editMessageText(
-        '会话已过期, 请重新请求. 给您带来不便十分抱歉. 妹抖酱 参上',
+        '会话已过期, 请重新请求. 给您带来不便十分抱歉.',
         {
           chat_id: callbackQuery.message.chat.id,
           message_id: callbackQuery.message.message_id
@@ -78,7 +76,7 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
       )
     } else {
       await bot.editMessageCaption(
-        '会话已过期, 请重新请求. 给您带来不便十分抱歉. 妹抖酱 参上',
+        '会话已过期, 请重新请求. 给您带来不便十分抱歉.',
         {
           chat_id: callbackQuery.message.chat.id,
           message_id: callbackQuery.message.message_id
@@ -92,59 +90,9 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
   if (cmd !== 'action' && callbackQuery.message.reply_to_message &&
     callbackQuery.from.id !== callbackQuery.message.reply_to_message.from.id) {
     await bot.answerCallbackQuery(callbackQuery.id, {
-      text: '不要碰那里!(｡◕ˇ﹏ˇ◕）对, 对不起, 请原谅我的失礼. 妹抖酱 参上',
+      text: '不要碰那里!(｡◕ˇ﹏ˇ◕）对, 对不起, 请原谅我的失礼.',
       show_alert: true
     })
-    return
-  }
-
-  if (cmd === '/album') {
-    const r3 = [
-      'AgADBQADuqoxGwl0iVfttrp1RHI96HkvGzMABAEAAwIAA3gAA4JeAQABFgQ',
-      'AgADBQADxqgxG5pRmFatjowKDEaSnAyEAjMABAEAAwIAA3kAA-CCBQABFgQ',
-      'AgADBQADgKoxG17amFa0n08rpj5_oqIxGzMABAEAAwIAA3kAA51ZAAIWBA',
-      'AgADBQADxagxG5pRmFbfj8GayajUHruJAjMABAEAAwIAA3kAA7iLBQABFgQ',
-      'AgADBQADf6oxG17amFYwS9HD8jNa2iEqGzMABAEAAwIAA3kAA1BaAAIWBA',
-      'AgADBQADxKgxG5pRmFaxWYIt5wF6I9AXGzMABAEAAwIAA3kAA5tZAAIWBA',
-      'AgADBQADEakxG4zSiFYqCMpqZKHPBMGAAjMABAEAAwIAA3kAAwhtBQABFgQ',
-      'AgADBQADEKkxG4zSiFbz586GAs8DLoYzGzMABAEAAwIAA3kAAylEAAIWBA',
-      'AgADBQADw6gxG5pRmFbYl0Jyxmbyt4ktGzMABAEAAwIAA3kAA89YAAIWBA',
-      'AgADBQADfqoxG17amFbq0gnuXYyqIdQhGzMABAEAAwIAA3gAAxhbAAIWBA'
-    ]
-    const r15 = [
-      'AgADBQADu6oxGwl0iVd4bGlK6bO77UQfGzMABAEAAwIAA3kAA_ZeAQABFgQ',
-      'AgADBQADEqkxG4zSiFauKsyEHW_-LBQ0GzMABAEAAwIAA3kAA39FAAIWBA',
-      'AgADBQADkKkxGyYhiVaInczSkHYfknqFAjMABAEAAwIAA3kAA09uBQABFgQ',
-      'AgADBQADFKkxG4zSiFbeRT0Mt1wbEIqMAjMABAEAAwIAA3kAAwRyBQABFgQ',
-      'AgADBQADFqkxG4zSiFYAAffYENOsvQS7ExszAAQBAAMCAAN5AANYRAACFgQ',
-      'AgADBQADF6kxG4zSiFYgeyqH7I5yRRguGzMABAEAAwIAA3kAAwJGAAIWBA',
-      'AgADBQADgaoxG17amFaEkbGpylkizGAyGzMABAEAAwIAA3kAA8xZAAIWBA',
-      'AgADBQADi6oxG17amFbEUlYUIaL-KNkfGzMABAEAAwIAA3kAA-laAAIWBA',
-      'AgADBQADpqkxGyYhkVYGjBevxgQpab4RGzMABAEAAwIAA3kAA5lZAAIWBA',
-      'AgADBQADgqoxG17amFY6sp5NbPtMUd2KAjMABAEAAwIAA3kAAz2JBQABFgQ'
-    ]
-    const r15g = [
-      'AgADBQADl6oxG17amFaWlPN_Orn1CwhAGzMABAEAAwIAA3kAA19dAAIWBA',
-      'AgADBQADmKoxG17amFat5O8cG8NMvDgqGzMABAEAAwIAA3kAA8BbAAIWBA',
-      'AgADBQAD2KgxG5pRmFafHuKtlk9LEmYtGzMABAEAAwIAA3kAA09bAAIWBA',
-      'AgADBQAD0KgxG5pRmFZSZTkXyILcYNg8GzMABAEAAwIAA3kAAwFaAAIWBA',
-      'AgADBQADkakxGyYhiVbI9uzGJJhpkSkZGzMABAEAAwIAA3gAA8pEAAIWBA',
-      'AgADBQADhqoxG17amFY6pfIG64n5U8U9GzMABAEAAwIAA3kAA_daAAIWBA',
-      'AgADBQADh6oxG17amFbuyZn-pTwJ6_4eGzMABAEAAwIAA3kAA2daAAIWBA',
-      'AgADBQADGqkxG4zSiFbrgx3P74dB53MrGzMABAEAAwIAA3kAAyxFAAIWBA',
-      'AgADBQADGakxG4zSiFaKm9cTEzlEEZaAAjMABAEAAwIAA3kAAztxBQABFgQ',
-      'AgADBQADz6gxG5pRmFbAw5nqnRtFeuEuGzMABAEAAwIAA3kAA-FYAAIWBA'
-    ]
-    const toSend = callbackQuery.data === 'r3'
-      ? r3 : callbackQuery.data === 'r15'
-        ? r15 : r15g
-    for (let i = 0; i * 10 < toSend.length; i++) {
-      await bot.sendMediaGroup(
-        callbackQuery.message.chat.id,
-        toSend.slice(i * 10, i * 10 + 10).map(s => ({ type: 'photo', media: s }))
-      )
-    }
-    await bot.answerCallbackQuery(callbackQuery.id)
     return
   }
 
@@ -164,7 +112,7 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
       message_id: callbackQuery.message.message_id
     })
     await bot.editMessageText(
-      '妹抖酱已经把您的城市加上惹!ଘ(੭ˊᵕˋ)੭* ੈ✩‧₊˚ 妹抖酱 参上',
+      '早苗已经把您的城市加上惹!ଘ(੭ˊᵕˋ)੭* ੈ✩‧₊˚',
       {
         chat_id: callbackQuery.message.chat.id,
         message_id: callbackQuery.message.message_id
@@ -194,7 +142,7 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
       message_id: callbackQuery.message.message_id
     })
     await bot.editMessageText(
-      deleted ? '妹抖酱已经帮您把城市删惹!๐·°(৹˃̵﹏˂̵৹)°·๐ 妹抖酱 参上' : '您有订阅这个城市吗(´｀;) ？ 妹抖酱 参上',
+      deleted ? '早苗已经帮您把城市删惹!๐·°(৹˃̵﹏˂̵৹)°·๐' : '您有订阅这个城市吗(´｀;) ？',
       {
         chat_id: callbackQuery.message.chat.id,
         message_id: callbackQuery.message.message_id
@@ -211,7 +159,7 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
       message_id: callbackQuery.message.message_id
     })
     await bot.answerCallbackQuery(callbackQuery.id, {
-      text: '妹抖酱正在重试拉取更新, 请, 请您稍……( >﹏<。)候'
+      text: '早苗正在重试拉取更新, 请, 请您稍……( >﹏<。)候'
     })
     await queryWeather(callbackQuery.message, cmd, cites, cityWeathers)
     return
@@ -269,32 +217,6 @@ bot.on('edited_message', topLevelTry(async msg => {
 }))
 
 bot.on('message', topLevelTry(async msg => {
-  if (msg.from.id.toString() === '666378340') {
-    if (+new Date() < +new Date('2020-07-08T17:00+08:00')) {
-      await bot.deleteMessage(msg.chat.id, msg.message_id)
-      if (!lastMoecc[msg.chat.id.toString()]) {
-        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 404)
-        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 405)
-        await bot.forwardMessage(msg.chat.id, +process.env.GM2, 406)
-        lastMoecc[msg.chat.id.toString()] = {
-          lastMessageTime: +new Date(),
-          coolDown: 20
-        }
-      } else {
-        if (+new Date() - lastMoecc[msg.chat.id.toString()].lastMessageTime > 5 * 1000 * 60 &&
-          lastMoecc[msg.chat.id.toString()].coolDown <= 0) {
-          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 404)
-          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 405)
-          await bot.forwardMessage(msg.chat.id, +process.env.GM2, 406)
-          lastMoecc[msg.chat.id.toString()].lastMessageTime = +new Date()
-          lastMoecc[msg.chat.id.toString()].coolDown = 20
-        }
-      }
-      return
-    }
-  } else if (lastMoecc[msg.chat.id.toString()]) {
-    lastMoecc[msg.chat.id.toString()].coolDown--
-  }
   // bot command
   if (msg.entities && msg.entities.length &&
     msg.entities.findIndex(e => e.type === 'bot_command') !== -1) {
@@ -305,29 +227,12 @@ bot.on('message', topLevelTry(async msg => {
     }
 
     if (cmd === '/about') {
-      const pants = process.env.COMMIT_SHA
-        ? `[今天穿的胖次](https://github.com/rikakomoe/makurabot/tree/${process.env.COMMIT_SHA})`
-        : '[胖次](https://github.com/rikakomoe/makurabot)'
       await bot.sendMessage(msg.chat.id,
-        `◎ 公用女仆绒布球兼梨子前辈的私人助理天气酱\n◎ 可播报天气\n◎ 私聊咱可代为主人传达消息\n◎ ${pants}\n◎ 原型是[东风谷早苗](https://zh.moegirl.org/zh-hans/%E4%B8%9C%E9%A3%8E%E8%B0%B7%E6%97%A9%E8%8B%97)\n\n${statistic}\n\n妹抖酱 参上`,
+        `◎ 梨子的私人助理早苗\n◎ 可播报天气\n◎ 私聊咱可代为客官传达消息\n\n${statistic}`,
         {
           parse_mode: 'Markdown'
         }
       )
-      return
-    }
-
-    if (cmd === '/album') {
-      const sentMsg = await bot.sendPhoto(msg.chat.id, 'AgADBQADx6gxG5pRmFastHk5utJeOMsvGzMABAEAAwIAA3gAAyRaAAIWBA', {
-        caption: '点击下面的按钮可以获得由画师[宮瀬まひろ](https://twitter.com/miyase_mahiro)创作的[东风谷早苗](https://zh.moegirl.org/zh-hans/%E4%B8%9C%E9%A3%8E%E8%B0%B7%E6%97%A9%E8%8B%97)插画, 主人大人若是喜欢的话请[买本子](http://www.77haru.com/)支持TA~',
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '去幼儿园!', callback_data: 'r3' }, { text: '去小学!', callback_data: 'r15' }, { text: '去中学!', callback_data: 'r15g' }]
-          ]
-        }
-      })
-      await pushSession(sentMsg, cmd)
       return
     }
 
@@ -371,7 +276,7 @@ bot.on('message', topLevelTry(async msg => {
         store.state.weather[msg.chat.id + ''] = []
         await bot.sendMessage(
           msg.chat.id,
-          '来自 [MMM](https://scleox.github.io/Wearable-Technology/#%E9%81%93%E5%85%B7%E9%9B%86/%E7%8E%B0%E4%BB%A3%E5%A5%B3%E4%BB%86%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F.html) (Modern Maid Manager, 现代女仆管理系统) 的消息:\nPlease note that this bot is for personal and gentle use only. Due to the limitation of a free weather API plan this bot uses, if you or your group add a large number of cities, or make too frequent requests, you may be banned from using this bot unconditionally and without notice. If you need to use the bot heavily, please talk to this bot about that in private.\n妹抖酱参上',
+          'Please note that this bot is for personal and gentle use only. Due to the limitation of a free weather API plan this bot uses, if you or your group add a large number of cities, or make too frequent requests, you may be banned from using this bot unconditionally and without notice. If you need to use the bot heavily, please talk to this bot about that in private.',
           {
             parse_mode: 'Markdown',
             disable_web_page_preview: true
@@ -381,7 +286,7 @@ bot.on('message', topLevelTry(async msg => {
       }
       const args = msg.text
         .substr(cmdEntity.offset + cmdEntity.length).trim()
-      const sentMsg = await bot.sendMessage(msg.chat.id, '请您稍候, 妹抖酱正在帮您查询中……', {
+      const sentMsg = await bot.sendMessage(msg.chat.id, '请您稍候, 早苗正在帮您查询中……', {
         reply_to_message_id: msg.message_id
       })
       let result
@@ -399,9 +304,9 @@ bot.on('message', topLevelTry(async msg => {
         return
       }
       await bot.editMessageText(
-        result.length === 0 ? '没有找到您查询的城市, 真的非常抱歉. 妹抖酱 参上'
-          : result.length === 1 ? '久等了, 是这里吗? 妹抖酱 参上'
-            : '久等了, 是哪一个呢?  妹抖酱 参上',
+        result.length === 0 ? '没有找到您查询的城市, 真的非常抱歉.'
+          : result.length === 1 ? '久等了, 是这里吗?'
+            : '久等了, 是哪一个呢? ',
         {
           chat_id: msg.chat.id,
           message_id: sentMsg.message_id
@@ -426,11 +331,11 @@ bot.on('message', topLevelTry(async msg => {
       if (!cites || !cites.length) {
         await bot.sendMessage(
           msg.chat.id,
-          '您还没有添加城市, 用 /add_city <城市名> 来添加一个城市吧! 妹抖酱 参上'
+          '您还没有添加城市, 用 /add_city <城市名> 来添加一个城市吧!'
         )
         return
       }
-      const sentMsg = await bot.sendMessage(msg.chat.id, '妹抖酱正在拉取更新……请您稍等')
+      const sentMsg = await bot.sendMessage(msg.chat.id, '早苗正在拉取更新……请您稍等')
       await queryWeather(sentMsg, cmd, cites)
       return
     }
@@ -451,12 +356,12 @@ bot.on('message', topLevelTry(async msg => {
           delete wpCity.chats[msg.chat.id + '']
         }
         await store.save()
-        await bot.sendMessage(msg.chat.id, '打扰了๐·°(৹˃̵﹏˂̵৹)°·๐非常抱歉. 妹抖酱 参上', {
+        await bot.sendMessage(msg.chat.id, '打扰了๐·°(৹˃̵﹏˂̵৹)°·๐非常抱歉.', {
           reply_to_message_id: msg.message_id
         })
       } else { // switch to on
         if (!store.state.weather[msg.chat.id + ''] || store.state.weather[msg.chat.id + ''].length === 0) {
-          await bot.sendMessage(msg.chat.id, '您还没有添加城市, 用 /add_city <城市名> 来添加一个城市吧! 妹抖酱 参上', {
+          await bot.sendMessage(msg.chat.id, '您还没有添加城市, 用 /add_city <城市名> 来添加一个城市吧!', {
             reply_to_message_id: msg.message_id
           })
           return
@@ -464,7 +369,7 @@ bot.on('message', topLevelTry(async msg => {
         for (const cid of store.state.weather[msg.chat.id + '']) {
           await addWeatherPushCity(cid, msg.chat.id)
         }
-        await bot.sendMessage(msg.chat.id, '妹抖酱今后每天都会跟主人问好, 记得回复哦~(*ෆ´ ˘ `ෆ*)♡ 妹抖酱 参上', {
+        await bot.sendMessage(msg.chat.id, '早苗今后每天都会跟主人问好哦~(*ෆ´ ˘ `ෆ*)♡', {
           reply_to_message_id: msg.message_id
         })
       }
@@ -478,13 +383,13 @@ bot.on('message', topLevelTry(async msg => {
       if (!store.state.notification[msg.chat.id + ''].disabled) {
         store.state.notification[msg.chat.id + ''].disabled = true
         await store.save()
-        await bot.sendMessage(msg.chat.id, '打扰了, 非常抱歉ヽ(*。>Д<)o゜ 妹抖酱 参上', {
+        await bot.sendMessage(msg.chat.id, '打扰了, 非常抱歉ヽ(*。>Д<)o゜', {
           reply_to_message_id: msg.message_id
         })
       } else {
         store.state.notification[msg.chat.id + ''].disabled = false
         await store.save()
-        await bot.sendMessage(msg.chat.id, '(*ෆ´ ˘ `ෆ*)♡ 妹抖酱 参上', {
+        await bot.sendMessage(msg.chat.id, '(*ෆ´ ˘ `ෆ*)♡', {
           reply_to_message_id: msg.message_id
         })
       }
@@ -577,7 +482,7 @@ bot.on('message', topLevelTry(async msg => {
     }
   )
   await bot.sendMessage(msg.chat.id,
-    '妹抖酱已经把主人大人的重要指示上报啦!\\(๑╹◡╹๑)ﾉ♬ 妹抖酱 参上',
+    '早苗已经把您的重要指示上报啦!\\(๑╹◡╹๑)ﾉ♬',
     {
       reply_to_message_id: msg.message_id
     }
@@ -618,7 +523,7 @@ async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
     cityWeathers.sort((a, b) => (b.lat - a.lat))
     const title = sentMsg.chat.type !== 'private' ? '你群天气:' : '你城天气:'
     let result = `${title}\n${cityWeathers.map(d => d.text).join('\n')}`
-    if (!isFinal) result = `${result}\n妹抖酱仍在拉取更新……感谢您的耐心(´;ω;)`
+    if (!isFinal) result = `${result}\n早苗仍在拉取更新……感谢您的耐心(´;ω;)`
     await bot.editMessageText(
       result,
       {

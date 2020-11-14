@@ -579,7 +579,7 @@ function formatWeather (current, forecast) {
     return `${current.basic.location} ${emoji} ${current.now.tmp}°C`
   } catch (err) {
     statistic.spank(err)
-    return '妹抖酱坏掉了. 这都是我的错, 主人大人不要责怪她们( >﹏<。)'
+    return '早苗坏掉了. 主人大人……( >﹏<。)'
   }
 }
 
