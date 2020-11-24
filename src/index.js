@@ -153,6 +153,22 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
   }
 
   if (cmd === '/weather' || cmd === '/tenki' || cmd === '/tianqi') {
+    if (!data) {
+      await bot.editMessageReplyMarkup(null, {
+        chat_id: callbackQuery.message.chat.id,
+        message_id: callbackQuery.message.message_id
+      })
+      await bot.editMessageText(
+        '早苗正在帮您查询……请您稍等',
+        {
+          chat_id: callbackQuery.message.chat.id,
+          message_id: callbackQuery.message.message_id
+        }
+      )
+      await bot.answerCallbackQuery(callbackQuery.id)
+      await queryWeather(callbackQuery.message, cmd, [callbackQuery.data])
+      return
+    }
     const { cites, cityWeathers } = data
     await bot.editMessageReplyMarkup(null, {
       chat_id: callbackQuery.message.chat.id,
@@ -271,21 +287,8 @@ bot.on('message', topLevelTry(async msg => {
       }
       return
     }
-    if (cmd === '/add_city' || cmd === '/remove_city') {
-      if (!store.state.weather[msg.chat.id + '']) {
-        store.state.weather[msg.chat.id + ''] = []
-        await bot.sendMessage(
-          msg.chat.id,
-          'Please note that this bot is for personal and gentle use only. Due to the limitation of a free weather API plan this bot uses, if you or your group add a large number of cities, or make too frequent requests, you may be banned from using this bot unconditionally and without notice. If you need to use the bot heavily, please talk to this bot about that in private.',
-          {
-            parse_mode: 'Markdown',
-            disable_web_page_preview: true
-          }
-        )
-        await store.save()
-      }
-      const args = msg.text
-        .substr(cmdEntity.offset + cmdEntity.length).trim()
+
+    const promptUserChooseCity = async (args) => {
       const sentMsg = await bot.sendMessage(msg.chat.id, '请您稍候, 早苗正在帮您查询中……', {
         reply_to_message_id: msg.message_id
       })
@@ -323,10 +326,26 @@ bot.on('message', topLevelTry(async msg => {
           message_id: sentMsg.message_id
         })
       }
+    }
+
+    if (cmd === '/add_city' || cmd === '/remove_city') {
+      if (!store.state.weather[msg.chat.id + '']) {
+        store.state.weather[msg.chat.id + ''] = []
+        await store.save()
+      }
+      const args = msg.text
+        .substr(cmdEntity.offset + cmdEntity.length).trim()
+      await promptUserChooseCity(args)
       return
     }
 
     if (cmd === '/weather' || cmd === '/tenki' || cmd === '/tianqi') {
+      const args = msg.text
+        .substr(cmdEntity.offset + cmdEntity.length).trim()
+      if (args) {
+        await promptUserChooseCity(args)
+        return
+      }
       const cites = store.state.weather[msg.chat.id + '']
       if (!cites || !cites.length) {
         await bot.sendMessage(
@@ -523,7 +542,7 @@ async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
     cityWeathers.sort((a, b) => (b.lat - a.lat))
     const title = sentMsg.chat.type !== 'private' ? '你群天气:' : '你城天气:'
     let result = `${title}\n${cityWeathers.map(d => d.text).join('\n')}`
-    if (!isFinal) result = `${result}\n早苗仍在拉取更新……感谢您的耐心(´;ω;)`
+    if (!isFinal) result = `${result}\n早苗仍在拉取天气更新……感谢您的耐心(´;ω;)`
     await bot.editMessageText(
       result,
       {
