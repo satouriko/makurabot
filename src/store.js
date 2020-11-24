@@ -3,7 +3,7 @@ const fs = require('fs')
 class Store {
   constructor () {
     let store
-    const initStore = { weather: {}, weatherPush: {}, notification: {}, pushedWeatherMsg: {}, session: {} }
+    const initStore = { weather: {}, weatherPush: {}, notification: {}, pushedWeatherMsg: {}, session: {}, userBotContext: {} }
     this.storePath = '/data/store.json'
     if (fs.existsSync(this.storePath)) {
       try {
@@ -16,6 +16,7 @@ class Store {
       if (!store.session) store.session = {} // update migration
       if (!store.weatherPush) store.weatherPush = {} // update migration
       if (!store.pushedWeatherMsg) store.pushedWeatherMsg = {} // update migration
+      if (!store.userBotContext) store.userBotContext = {} // update migration
       try {
         fs.accessSync(this.storePath, fs.constants.W_OK)
       } catch (err) {

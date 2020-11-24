@@ -32,10 +32,14 @@ function topLevelTry (f) {
 
 const bot1 = createTelegramBot(process.env.TOKEN, { polling: true })
 const bot2 = createTelegramBot(process.env.TOKEN2, { polling: true, baseApiUrl: process.env.API_BASE2 })
-makurabot(bot1)
-makurabot(bot2)
+const botIdent = {
+  makura: bot1,
+  kochiya: bot2
+}
+makurabot(bot1, 'makura')
+makurabot(bot2, 'kochiya')
 
-function createTelegramBot(...args) {
+function createTelegramBot (...args) {
   const bot = new TelegramBot(...args)
   bot._sendMessage = bot.sendMessage
   bot.sendMessage = async function (chatId, text, form) {
@@ -55,8 +59,10 @@ function createTelegramBot(...args) {
   return bot
 }
 
-function makurabot(bot) {
+function makurabot (bot, ident) {
   bot.on('callback_query', topLevelTry(async callbackQuery => {
+    await setUserBotContext(callbackQuery.message.chat.id, ident)
+
     if (!callbackQuery.message) {
       await bot.answerCallbackQuery(callbackQuery.id)
       return
@@ -205,6 +211,8 @@ function makurabot(bot) {
   }))
 
   bot.on('edited_message', topLevelTry(async msg => {
+    await setUserBotContext(msg.chat.id, ident)
+
     // bot command
     if (msg.entities && msg.entities.length &&
       msg.entities.findIndex(e => e.type === 'bot_command') !== -1) {
@@ -243,6 +251,8 @@ function makurabot(bot) {
   }))
 
   bot.on('message', topLevelTry(async msg => {
+    await setUserBotContext(msg.chat.id, ident)
+
     // bot command
     if (msg.entities && msg.entities.length &&
       msg.entities.findIndex(e => e.type === 'bot_command') !== -1) {
@@ -320,8 +330,8 @@ function makurabot(bot) {
           result.length === 0
             ? '没有找到您查询的城市, 真的非常抱歉.'
             : result.length === 1
-            ? '久等了, 是这里吗?'
-            : '久等了, 是哪一个呢? ',
+              ? '久等了, 是这里吗?'
+              : '久等了, 是哪一个呢? ',
           {
             chat_id: msg.chat.id,
             message_id: sentMsg.message_id
@@ -549,37 +559,6 @@ function makurabot(bot) {
     await bot.answerInlineQuery(inlineQuery.id, result)
   }))
 
-  async function pushSession (sentMsg, cmd, data) {
-    if (!store.state.session[sentMsg.chat.id + '']) {
-      store.state.session[sentMsg.chat.id + ''] = {}
-    }
-    const date = new Date()
-    for (const msgId of Object.keys(store.state.session[sentMsg.chat.id + ''])) {
-      let expireAt = store.state.session[sentMsg.chat.id + ''][msgId].expireAt
-      expireAt = new Date(expireAt)
-      if (date > expireAt) {
-        delete store.state.session[sentMsg.chat.id + ''][msgId]
-      }
-    }
-    date.setDate(date.getDate() + 2)
-    store.state.session[sentMsg.chat.id + ''][sentMsg.message_id + ''] = {
-      cmd, data, expireAt: date.toISOString()
-    }
-    await store.save()
-  }
-
-  async function queryFormatWeather (cid, lang) {
-    const weatherNow = await getWeatherNow(cid, lang)
-    const weatherForecast = await getWeatherForecast(cid, 'zh', true)
-    const formattedWeather = formatWeather(weatherNow, weatherForecast)
-    return {
-      cid,
-      ok: true,
-      lat: weatherNow.basic.lat,
-      text: formattedWeather
-    }
-  }
-
   async function answerQueryWeather (sentMsg, cmd, cites, cityWeathers) {
     const lang = cmd === '/weather'
       ? 'en'
@@ -657,146 +636,6 @@ function makurabot(bot) {
     }
   }
 
-  function isDailyOn (chatId) {
-    let on = false
-    for (const wpCity of Object.values(store.state.weatherPush)) {
-      if (Object.keys(wpCity.chats).indexOf(chatId + '') !== -1) {
-        on = true
-      }
-    }
-    return on
-  }
-
-  async function addWeatherPushCity (cid, chatId) {
-    if (!store.state.weatherPush[cid]) {
-      store.state.weatherPush[cid] = {
-        chats: {
-          [chatId + '']: { importantOnly: false }
-        }
-      }
-      checkAndScheduleWeatherPush(cid)
-    } else {
-      store.state.weatherPush[cid].chats[chatId + ''] = { importantOnly: false }
-    }
-    await store.save()
-  }
-
-  const weatherPushQueue = []
-  async function triggerWeatherPush (cid) {
-    weatherPushQueue.push(cid)
-    if (weatherPushQueue.length === 1) {
-      runWeatherPushEventLoop()
-    }
-  }
-  async function runWeatherPushEventLoop () {
-    while (weatherPushQueue[0]) {
-      await weatherPush(weatherPushQueue[0])
-      await new Promise(resolve => { setTimeout(resolve, 60000) })
-      weatherPushQueue.shift()
-    }
-  }
-
-  async function weatherPush (cid) {
-    if (!store.state.weatherPush[cid]) return
-    if (Object.keys(store.state.weatherPush[cid].chats).length === 0) {
-      delete store.state.weatherPush[cid]
-      await store.save()
-      return
-    }
-    const { chats, yesterday } = store.state.weatherPush[cid]
-    let forecast
-    try {
-      forecast = await getWeatherForecast(cid, 'zh', true)
-    } catch (err) {
-      if (err.name === 'InsufficientForecastError') { // retry in an hour
-        setTimeout(() => triggerWeatherPush(cid), 3600000)
-      } else { // retry in a minute
-        weatherPushQueue.push(cid)
-      }
-      return
-    }
-    const f1 = formatDaily(forecast.daily_forecast[0], yesterday, forecast.basic)
-    const expireAt = new Date(`${forecast.daily_forecast[0].date}T12:00${toISOTZ(forecast.basic.tz)}`)
-    for (const chatId of Object.keys(chats)) {
-      if (chats[chatId].importantOnly && !f1.suggestion) continue
-      try {
-        const f1s = []; const cids = []
-        if (store.state.session[chatId]) {
-          for (const msgId of Object.keys(store.state.session[chatId])) {
-            if (store.state.session[chatId][msgId].cmd === 'weather_push' &&
-              store.state.session[chatId][msgId].data.expireAt === expireAt.toISOString()) {
-              if (store.state.session[chatId][msgId].data.f1s) {
-                f1s.push(...store.state.session[chatId][msgId].data.f1s)
-              }
-              if (store.state.session[chatId][msgId].data.cids) {
-                cids.push(...store.state.session[chatId][msgId].data.cids)
-              }
-              await bot.deleteMessage(chatId, msgId)
-              delete store.state.session[chatId][msgId]
-            }
-          }
-          await store.save()
-        }
-        f1s.push(f1)
-        cids.push(cid)
-        const toSend = formatDaily2(f1s)
-        const sentMsg = await bot.sendMessage(chatId,
-          toSend,
-          {
-            disable_notification: store.state.notification[chatId] && store.state.notification[chatId].disabled,
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: '早', callback_data: "mornin'" }]
-              ]
-            }
-          }
-        )
-        await pushSession(sentMsg, 'weather_push',
-          {
-            cids,
-            f1s,
-            expireAt: expireAt.toISOString()
-          }
-        )
-        chats[chatId].importantOnly = true
-      } catch (err) {
-        statistic.spank(err)
-      }
-    }
-    await store.save()
-    checkAndScheduleWeatherPush(cid)
-  }
-
-  async function checkAndScheduleWeatherPush (cid) {
-    let forecast
-    try {
-      forecast = await getWeatherForecast(cid, 'zh')
-    } catch (err) {
-      if (err.name === 'InsufficientForecastError') { // retry in an hour
-        setTimeout(() => checkAndScheduleWeatherPush(cid), 3600000)
-      } else { // retry in a minute
-        setTimeout(() => checkAndScheduleWeatherPush(cid), 60000)
-      }
-      return
-    }
-    const today = forecast.daily_forecast[0]
-    const tomorrow = forecast.daily_forecast[1]
-    const srtd = new Date(`${today.date}T${today.sr}${toISOTZ(forecast.basic.tz)}`)
-    const now = new Date()
-    if (now < srtd) {
-      scheduleDateTime(today.date, today.sr, forecast.basic.tz, () => triggerWeatherPush(cid))
-    } else {
-      // today is the yesterday of tomorrow
-      store.state.weatherPush[cid].yesterday = today
-      await store.save()
-      scheduleDateTime(tomorrow.date, tomorrow.sr, forecast.basic.tz, () => triggerWeatherPush(cid))
-    }
-  }
-
-  for (const cid of Object.keys(store.state.weatherPush)) {
-    checkAndScheduleWeatherPush(cid)
-  }
-
   async function handleMornin (chatId, data) {
     let { cid, cids, expireAt } = data
     expireAt = new Date(expireAt)
@@ -827,4 +666,187 @@ function makurabot(bot) {
       reply_to_message_id: msg.message_id
     })
   }
+}
+
+function isDailyOn (chatId) {
+  let on = false
+  for (const wpCity of Object.values(store.state.weatherPush)) {
+    if (Object.keys(wpCity.chats).indexOf(chatId + '') !== -1) {
+      on = true
+    }
+  }
+  return on
+}
+
+async function pushSession (sentMsg, cmd, data) {
+  if (!store.state.session[sentMsg.chat.id + '']) {
+    store.state.session[sentMsg.chat.id + ''] = {}
+  }
+  const date = new Date()
+  for (const msgId of Object.keys(store.state.session[sentMsg.chat.id + ''])) {
+    let expireAt = store.state.session[sentMsg.chat.id + ''][msgId].expireAt
+    expireAt = new Date(expireAt)
+    if (date > expireAt) {
+      delete store.state.session[sentMsg.chat.id + ''][msgId]
+    }
+  }
+  date.setDate(date.getDate() + 2)
+  store.state.session[sentMsg.chat.id + ''][sentMsg.message_id + ''] = {
+    cmd, data, expireAt: date.toISOString()
+  }
+  await store.save()
+}
+
+async function queryFormatWeather (cid, lang) {
+  const weatherNow = await getWeatherNow(cid, lang)
+  const weatherForecast = await getWeatherForecast(cid, 'zh', true)
+  const formattedWeather = formatWeather(weatherNow, weatherForecast)
+  return {
+    cid,
+    ok: true,
+    lat: weatherNow.basic.lat,
+    text: formattedWeather
+  }
+}
+
+async function addWeatherPushCity (cid, chatId) {
+  if (!store.state.weatherPush[cid]) {
+    store.state.weatherPush[cid] = {
+      chats: {
+        [chatId + '']: { importantOnly: false }
+      }
+    }
+    checkAndScheduleWeatherPush(cid)
+  } else {
+    store.state.weatherPush[cid].chats[chatId + ''] = { importantOnly: false }
+  }
+  await store.save()
+}
+
+const weatherPushQueue = []
+async function triggerWeatherPush (cid) {
+  weatherPushQueue.push(cid)
+  if (weatherPushQueue.length === 1) {
+    runWeatherPushEventLoop()
+  }
+}
+async function runWeatherPushEventLoop () {
+  while (weatherPushQueue[0]) {
+    await weatherPush(weatherPushQueue[0])
+    await new Promise(resolve => { setTimeout(resolve, 60000) })
+    weatherPushQueue.shift()
+  }
+}
+
+async function weatherPush (cid) {
+  if (!store.state.weatherPush[cid]) return
+  if (Object.keys(store.state.weatherPush[cid].chats).length === 0) {
+    delete store.state.weatherPush[cid]
+    await store.save()
+    return
+  }
+  const { chats, yesterday } = store.state.weatherPush[cid]
+  let forecast
+  try {
+    forecast = await getWeatherForecast(cid, 'zh', true)
+  } catch (err) {
+    if (err.name === 'InsufficientForecastError') { // retry in an hour
+      setTimeout(() => triggerWeatherPush(cid), 3600000)
+    } else { // retry in a minute
+      weatherPushQueue.push(cid)
+    }
+    return
+  }
+  const f1 = formatDaily(forecast.daily_forecast[0], yesterday, forecast.basic)
+  const expireAt = new Date(`${forecast.daily_forecast[0].date}T12:00${toISOTZ(forecast.basic.tz)}`)
+  for (const chatId of Object.keys(chats)) {
+    if (chats[chatId].importantOnly && !f1.suggestion) continue
+    try {
+      const f1s = []; const cids = []
+      if (store.state.session[chatId]) {
+        for (const msgId of Object.keys(store.state.session[chatId])) {
+          if (store.state.session[chatId][msgId].cmd === 'weather_push' &&
+            store.state.session[chatId][msgId].data.expireAt === expireAt.toISOString()) {
+            if (store.state.session[chatId][msgId].data.f1s) {
+              f1s.push(...store.state.session[chatId][msgId].data.f1s)
+            }
+            if (store.state.session[chatId][msgId].data.cids) {
+              cids.push(...store.state.session[chatId][msgId].data.cids)
+            }
+            await getContextUserBot(chatId).deleteMessage(chatId, msgId)
+            delete store.state.session[chatId][msgId]
+          }
+        }
+        await store.save()
+      }
+      f1s.push(f1)
+      cids.push(cid)
+      const toSend = formatDaily2(f1s)
+      const sentMsg = await getContextUserBot(chatId).sendMessage(chatId,
+        toSend,
+        {
+          disable_notification: store.state.notification[chatId] && store.state.notification[chatId].disabled,
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '早', callback_data: "mornin'" }]
+            ]
+          }
+        }
+      )
+      await pushSession(sentMsg, 'weather_push',
+        {
+          cids,
+          f1s,
+          expireAt: expireAt.toISOString()
+        }
+      )
+      chats[chatId].importantOnly = true
+    } catch (err) {
+      statistic.spank(err)
+    }
+  }
+  await store.save()
+  checkAndScheduleWeatherPush(cid)
+}
+
+async function checkAndScheduleWeatherPush (cid) {
+  let forecast
+  try {
+    forecast = await getWeatherForecast(cid, 'zh')
+  } catch (err) {
+    if (err.name === 'InsufficientForecastError') { // retry in an hour
+      setTimeout(() => checkAndScheduleWeatherPush(cid), 3600000)
+    } else { // retry in a minute
+      setTimeout(() => checkAndScheduleWeatherPush(cid), 60000)
+    }
+    return
+  }
+  const today = forecast.daily_forecast[0]
+  const tomorrow = forecast.daily_forecast[1]
+  const srtd = new Date(`${today.date}T${today.sr}${toISOTZ(forecast.basic.tz)}`)
+  const now = new Date()
+  if (now < srtd) {
+    scheduleDateTime(today.date, today.sr, forecast.basic.tz, () => triggerWeatherPush(cid))
+  } else {
+    // today is the yesterday of tomorrow
+    store.state.weatherPush[cid].yesterday = today
+    await store.save()
+    scheduleDateTime(tomorrow.date, tomorrow.sr, forecast.basic.tz, () => triggerWeatherPush(cid))
+  }
+}
+
+for (const cid of Object.keys(store.state.weatherPush)) {
+  checkAndScheduleWeatherPush(cid)
+}
+
+async function setUserBotContext (chatId, ident) {
+  store.state.userBotContext[chatId + ''] = ident
+  await store.save()
+}
+
+function getContextUserBot (chatId) {
+  if (Object.keys(botIdent).indexOf(store.state.userBotContext[chatId + '']) !== -1) {
+    return botIdent[store.state.userBotContext[chatId + '']]
+  }
+  return botIdent.makura
 }
