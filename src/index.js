@@ -600,7 +600,7 @@ function makurabot (bot, ident) {
           }, 10000)
         }
         try {
-          cityWeathers.push(queryFormatWeather(cid, lang))
+          cityWeathers.push(await queryFormatWeather(cid, lang))
         } catch (err) {
           if (retryCnt > 1 && err.name === 'TimeoutError') {
             retryCites.push(cid)
