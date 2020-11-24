@@ -37,7 +37,9 @@ async function heweather6 (req, retryCnt) {
     clearTimeout(timeout)
   }
   if (!res.ok) {
-    statistic.spank(res.statusText)
+    if (res.status <= 0 || res.status >= 500) {
+      statistic.spank(res.statusText)
+    }
     if (res.status >= 500 && retryCnt > 0) return heweather6(req, retryCnt - 1)
     throw new Error(res.statusText)
   }
