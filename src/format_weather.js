@@ -611,8 +611,13 @@ function formatDaily (today, yesterday, basic) {
   }
   // greeting
   const todayEmoji = cd !== cn ? `${wcd.emoji}\u27a1\ufe0f${wcn.emoji}` : wcd.emoji
-  const badWeatherText = isBadWeather(cd) && isBadWeather(cn) && cd !== cn ? `${wcd.zh}转${wcn.zh}`
-    : isBadWeather(cn) ? wcn.zh : isBadWeather(cd) ? wcd.zh : ''
+  const badWeatherText = isBadWeather(cd) && isBadWeather(cn) && cd !== cn
+    ? `${wcd.zh}转${wcn.zh}`
+    : isBadWeather(cn)
+      ? wcn.zh
+      : isBadWeather(cd)
+        ? wcd.zh
+        : ''
   const weather = `${todayEmoji} ${ti}°C ~ ${ta}°C`
   let suggestion = ''
   const withWind = +(today.wind_spd) >= 29
@@ -626,7 +631,8 @@ function formatDaily (today, yesterday, basic) {
   } else if (yesterday) {
     const yi = +yesterday.tmp_min; const ya = +yesterday.tmp_max
     if ((ti <= 12 && ti - yi <= -5) || (ta <= 12 && ta - ya <= -5)) {
-      suggestion = withWind ? '较昨天气温显著降低/风比较大/主人要注意适当添加衣服!'
+      suggestion = withWind
+        ? '较昨天气温显著降低/风比较大/主人要注意适当添加衣服!'
         : '较昨天气温显著降低/主人要注意适当添加衣服!'
     } else if (ti <= 12 && withWind) {
       suggestion = '风比较大/主人要注意适当添加衣服!'
@@ -643,7 +649,8 @@ function formatDaily (today, yesterday, basic) {
     suggestion = `${suggestion}天气极端恶劣:/有${badWeatherText}/请主人尽量避免出行, 如需出行, 请务必注意安全!`
   } else if (isRain(cd) || isRain(cn)) {
     if (suggestion) suggestion += ';'
-    suggestion = withStrongWind ? `${suggestion}有${badWeatherText}/建议主人出门穿雨衣!`
+    suggestion = withStrongWind
+      ? `${suggestion}有${badWeatherText}/建议主人出门穿雨衣!`
       : `${suggestion}有${badWeatherText}/主人出门要记得带伞!`
   } else if (isPollution(cd) || isPollution(cn)) {
     if (suggestion) suggestion += ';'
@@ -681,7 +688,8 @@ function formatDaily2 (formatDailies) {
       }
       if (j === 0) t2 = `${t2}${reason}, ${suggestion.suggestion}`
       if (j === 1) {
-        t2 = reason[0] === '有' ? `${t2} 同时今天还${reason}, ${suggestion.suggestion}`
+        t2 = reason[0] === '有'
+          ? `${t2} 同时今天还${reason}, ${suggestion.suggestion}`
           : `${t2} 同时今天${reason}, ${suggestion.suggestion}`
       }
     }

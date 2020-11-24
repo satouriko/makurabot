@@ -307,8 +307,10 @@ bot.on('message', topLevelTry(async msg => {
         return
       }
       await bot.editMessageText(
-        result.length === 0 ? '没有找到您查询的城市, 真的非常抱歉.'
-          : result.length === 1 ? '久等了, 是这里吗?'
+        result.length === 0
+          ? '没有找到您查询的城市, 真的非常抱歉.'
+          : result.length === 1
+            ? '久等了, 是这里吗?'
             : '久等了, 是哪一个呢? ',
         {
           chat_id: msg.chat.id,
@@ -362,8 +364,11 @@ bot.on('message', topLevelTry(async msg => {
     if (cmd === '/legend' || cmd === '/hanrei' || cmd === '/tuli') {
       const args = msg.text
         .substr(cmdEntity.offset + cmdEntity.length).trim()
-      const lang = cmd === '/legend' ? 'en'
-        : cmd === '/hanrei' ? 'ja' : 'zh'
+      const lang = cmd === '/legend'
+        ? 'en'
+        : cmd === '/hanrei'
+          ? 'ja'
+          : 'zh'
       await bot.sendMessage(msg.chat.id, formatLegend(args, lang))
       return
     }
@@ -528,8 +533,11 @@ async function pushSession (sentMsg, cmd, data) {
 }
 
 async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
-  const lang = cmd === '/weather' ? 'en'
-    : cmd === '/tenki' ? 'ja' : 'zh'
+  const lang = cmd === '/weather'
+    ? 'en'
+    : cmd === '/tenki'
+      ? 'ja'
+      : 'zh'
   if (!cityWeathers) cityWeathers = []
   let error
   let needUpdate = false
@@ -540,8 +548,8 @@ async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
   const update = async (isFinal) => {
     if (!isFinal && cityWeathers.length === lastUpdateCnt) return
     cityWeathers.sort((a, b) => (b.lat - a.lat))
-    const title = sentMsg.chat.type !== 'private' ? '你群天气:' : '你城天气:'
-    let result = `${title}\n${cityWeathers.map(d => d.text).join('\n')}`
+    const title = sentMsg.reply_to_message ? '' : sentMsg.chat.type !== 'private' ? '你群天气:\n' : '你城天气:\n'
+    let result = `${title}${cityWeathers.map(d => d.text).join('\n')}`
     if (!isFinal) result = `${result}\n早苗仍在拉取天气更新……感谢您的耐心(´;ω;)`
     await bot.editMessageText(
       result,
