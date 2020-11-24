@@ -168,7 +168,7 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
         }
       )
       await bot.answerCallbackQuery(callbackQuery.id)
-      await queryWeather(callbackQuery.message, cmd, [callbackQuery.data])
+      await answerQueryWeather(callbackQuery.message, cmd, [callbackQuery.data])
       return
     }
     const { cites, cityWeathers } = data
@@ -179,7 +179,7 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
     await bot.answerCallbackQuery(callbackQuery.id, {
       text: '早苗正在重试拉取更新, 请, 请您稍……( >﹏<。)候'
     })
-    await queryWeather(callbackQuery.message, cmd, cites, cityWeathers)
+    await answerQueryWeather(callbackQuery.message, cmd, cites, cityWeathers)
     return
   }
 
@@ -359,7 +359,7 @@ bot.on('message', topLevelTry(async msg => {
         return
       }
       const sentMsg = await bot.sendMessage(msg.chat.id, '早苗正在拉取更新……请您稍等')
-      await queryWeather(sentMsg, cmd, cites)
+      await answerQueryWeather(sentMsg, cmd, cites)
       return
     }
 
@@ -515,6 +515,29 @@ bot.on('message', topLevelTry(async msg => {
   )
 }))
 
+bot.on('inline_query', topLevelTry(async inlineQuery => {
+  const args = inlineQuery.query
+  let result
+  try {
+    result = await queryCity(args)
+  } catch (err) {
+    return
+  }
+  const cityMap = {}
+  for (const city of result) cityMap[city.cid] = city.fullname
+  result = await Promise.all(result.map(city => queryFormatWeather(city.cid, 'zh')))
+  for (const city of result) city.fullname = cityMap[city.cid]
+  result = result.map(city => ({
+    type: 'article',
+    id: city.cid,
+    title: city.fullname,
+    input_message_content: {
+      message_text: city.text
+    }
+  }))
+  await bot.answerInlineQuery(inlineQuery.id, result)
+}))
+
 async function pushSession (sentMsg, cmd, data) {
   if (!store.state.session[sentMsg.chat.id + '']) {
     store.state.session[sentMsg.chat.id + ''] = {}
@@ -534,7 +557,19 @@ async function pushSession (sentMsg, cmd, data) {
   await store.save()
 }
 
-async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
+async function queryFormatWeather (cid, lang) {
+  const weatherNow = await getWeatherNow(cid, lang)
+  const weatherForecast = await getWeatherForecast(cid, 'zh', true)
+  const formattedWeather = formatWeather(weatherNow, weatherForecast)
+  return {
+    cid,
+    ok: true,
+    lat: weatherNow.basic.lat,
+    text: formattedWeather
+  }
+}
+
+async function answerQueryWeather (sentMsg, cmd, cites, cityWeathers) {
   const lang = cmd === '/weather'
     ? 'en'
     : cmd === '/tenki'
@@ -575,15 +610,7 @@ async function queryWeather (sentMsg, cmd, cites, cityWeathers) {
         }, 10000)
       }
       try {
-        const weatherNow = await getWeatherNow(cid, lang)
-        const weatherForecast = await getWeatherForecast(cid, 'zh', true)
-        const formattedWeather = formatWeather(weatherNow, weatherForecast)
-        cityWeathers.push({
-          cid,
-          ok: true,
-          lat: weatherNow.basic.lat,
-          text: formattedWeather
-        })
+        cityWeathers.push(queryFormatWeather(cid, lang))
       } catch (err) {
         if (retryCnt > 1 && err.name === 'TimeoutError') {
           retryCites.push(cid)
