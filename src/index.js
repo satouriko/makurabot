@@ -517,6 +517,9 @@ bot.on('message', topLevelTry(async msg => {
 
 bot.on('inline_query', topLevelTry(async inlineQuery => {
   const args = inlineQuery.query
+  if (!args) {
+    return
+  }
   let result
   try {
     result = await queryCity(args)
