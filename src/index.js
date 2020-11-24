@@ -100,7 +100,9 @@ bot.on('callback_query', topLevelTry(async callbackQuery => {
     if (!store.state.weather[callbackQuery.message.chat.id + '']) {
       store.state.weather[callbackQuery.message.chat.id + ''] = []
     }
-    store.state.weather[callbackQuery.message.chat.id + ''].push(callbackQuery.data)
+    if (store.state.weather[callbackQuery.message.chat.id + ''].indexOf(callbackQuery.data) === -1) {
+      store.state.weather[callbackQuery.message.chat.id + ''].push(callbackQuery.data)
+    }
     const dailyOn = isDailyOn(callbackQuery.message.chat.id)
     if (dailyOn) {
       await addWeatherPushCity(callbackQuery.data, callbackQuery.message.chat.id)
