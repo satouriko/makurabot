@@ -501,7 +501,7 @@ emojiList.others = '\ud83e\udd75\ud83e\udd76\ud83d\ude36'
 
 const promptEmojiList = '\ud83c\udf19\ufe0f\u2601\ufe0f\ud83c\udf2c\ufe0f\ud83c\udf27\ufe0f\ud83c\udf28\ufe0f\ud83c\udf2b\ufe0f\ud83d\ude36\ufe0f'
 
-function formatLegend (queryEmoji, lang) {
+function formatLegend (queryEmoji, lang, cmd) {
   queryEmoji = queryEmoji.replace(/[\ufe0e\ufe0f]/g, '')
   let emojiSet
   const order = ['others', 'fog', 'snow', 'rain', 'wind', 'moon', 'cloud']
@@ -517,11 +517,11 @@ function formatLegend (queryEmoji, lang) {
   if (!queryEmoji || !emojiSet) {
     switch (lang) {
       case 'ja':
-        return `${promptEmojiList} のいずれかを入力してください`
+        return `コマンドの後にクエリする凡例を追加してください (例: ${cmd} \u2601\ufe0f). 凡例インデックス: ${promptEmojiList}`
       case 'zh':
-        return `没有找到要查询的图例, 使用 ${promptEmojiList} 中的一个`
+        return `请在命令后面加上要查询的图例, 例如 ${cmd} \u2601\ufe0f. 图例索引: ${promptEmojiList}`
       default:
-        return `What legend do you want, use one of ${promptEmojiList}`
+        return `Please add the legend to be queried after the command, for example ${cmd} \u2601\ufe0f. Legend index: ${promptEmojiList}`
     }
   }
   const title = lang === 'ja' ? '凡例:' : lang === 'zh' ? '图例:' : 'Legend:'

@@ -255,7 +255,8 @@ function makurabot (bot, ident) {
 
     // bot command
     if (msg.entities && msg.entities.length &&
-      msg.entities.findIndex(e => e.type === 'bot_command') !== -1) {
+      msg.entities.findIndex(e => e.type === 'bot_command') !== -1 &&
+      msg.entities.find(e => e.type === 'bot_command').offset === 0) {
       const cmdEntity = msg.entities.find(e => e.type === 'bot_command')
       let cmd = msg.text.substr(cmdEntity.offset, cmdEntity.length)
       if (cmd.indexOf('@') !== -1) {
@@ -389,7 +390,7 @@ function makurabot (bot, ident) {
           : cmd === '/hanrei'
             ? 'ja'
             : 'zh'
-        await bot.sendMessage(msg.chat.id, formatLegend(args, lang))
+        await bot.sendMessage(msg.chat.id, formatLegend(args, lang, cmd))
         return
       }
 
