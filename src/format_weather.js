@@ -501,7 +501,7 @@ emojiList.others = '\ud83e\udd75\ud83e\udd76\ud83d\ude36'
 
 const promptEmojiList = '\ud83c\udf19\ufe0f\u2601\ufe0f\ud83c\udf2c\ufe0f\ud83c\udf27\ufe0f\ud83c\udf28\ufe0f\ud83c\udf2b\ufe0f\ud83d\ude36\ufe0f'
 
-function formatLegend (queryEmoji, lang, cmd) {
+function formatLegend (queryEmoji, lang) {
   queryEmoji = queryEmoji.replace(/[\ufe0e\ufe0f]/g, '')
   let emojiSet
   const order = ['others', 'fog', 'snow', 'rain', 'wind', 'moon', 'cloud']
@@ -515,14 +515,7 @@ function formatLegend (queryEmoji, lang, cmd) {
     if (emojiSet) break
   }
   if (!queryEmoji || !emojiSet) {
-    switch (lang) {
-      case 'ja':
-        return `コマンドの後にクエリする凡例を追加してください (例: ${cmd} \u2601\ufe0f). 凡例インデックス: ${promptEmojiList}`
-      case 'zh':
-        return `请在命令后面加上要查询的图例, 例如 ${cmd} \u2601\ufe0f. 图例索引: ${promptEmojiList}`
-      default:
-        return `Please add the legend to be queried after the command, for example ${cmd} \u2601\ufe0f. Legend index: ${promptEmojiList}`
-    }
+    return ''
   }
   const title = lang === 'ja' ? '凡例:' : lang === 'zh' ? '图例:' : 'Legend:'
   return title + '\n' + Object.values(emojiSet).map(wc => {
@@ -739,5 +732,6 @@ module.exports = {
   formatLegend,
   formatWeather,
   formatDaily,
-  formatDaily2
+  formatDaily2,
+  promptEmojiList
 }

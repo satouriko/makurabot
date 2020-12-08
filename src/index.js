@@ -6,8 +6,10 @@ const store = require('./store')
 const statistic = require('./statistic')
 const { toISOTZ } = require('./time')
 const { getWeatherNow, getWeatherForecast, queryCity } = require('./heweather')
-const { formatWeather, formatLegend, formatDaily, formatDaily2 } = require('./format_weather')
+const { formatWeather, formatLegend, formatDaily, formatDaily2, promptEmojiList } = require('./format_weather')
 const { scheduleDateTime } = require('./schedule')
+
+const context = {}
 
 const client = new Twitter({
   consumer_key: process.env.TWITTER_CONSUMER_KEY,
@@ -309,7 +311,7 @@ function makurabot (bot, ident) {
         return
       }
 
-      const promptUserChooseCity = async (args) => {
+      const promptUserChooseCity = async (msg, args) => {
         const sentMsg = await bot.sendMessage(msg.chat.id, '请您稍候, 早苗正在帮您查询中……', {
           reply_to_message_id: msg.message_id
         })
@@ -319,7 +321,7 @@ function makurabot (bot, ident) {
         } catch (err) {
           let text = err.message
           if (err.message === 'invalid param') {
-            text = `请在输入的命令后面加上城市名, 中英文都可以, 例如: ${cmd} 上海`
+            text = '您的输入好像有问题呢...'
           }
           await bot.editMessageText(text, {
             chat_id: msg.chat.id,
@@ -358,7 +360,7 @@ function makurabot (bot, ident) {
         }
         const args = msg.text
           .substr(cmdEntity.offset + cmdEntity.length).trim()
-        await promptUserChooseCity(args)
+        promptUserChooseCity(msg, args).then()
         return
       }
 
@@ -366,15 +368,24 @@ function makurabot (bot, ident) {
         const args = msg.text
           .substr(cmdEntity.offset + cmdEntity.length).trim()
         if (args) {
-          await promptUserChooseCity(args)
+          promptUserChooseCity(msg, args).then()
           return
         }
         const cites = store.state.weather[msg.chat.id + '']
         if (!cites || !cites.length) {
-          await bot.sendMessage(
+          const sentMsg = await bot.sendMessage(
             msg.chat.id,
-            '您还没有添加城市, 用 /add_city <城市名> 来添加一个城市吧!'
+            '请输入您要查询的城市的名字:',
+            {
+              reply_to_message_id: msg.message_id,
+              reply_markup: {
+                force_reply: true,
+                selective: true
+              }
+            }
           )
+          msg = await requestParameters(sentMsg)
+          promptUserChooseCity(msg, msg.text || '').then()
           return
         }
         const sentMsg = await bot.sendMessage(msg.chat.id, '早苗正在拉取更新……请您稍等')
@@ -383,14 +394,41 @@ function makurabot (bot, ident) {
       }
 
       if (cmd === '/legend' || cmd === '/hanrei' || cmd === '/tuli') {
-        const args = msg.text
+        let args = msg.text
           .substr(cmdEntity.offset + cmdEntity.length).trim()
         const lang = cmd === '/legend'
           ? 'en'
           : cmd === '/hanrei'
             ? 'ja'
             : 'zh'
-        await bot.sendMessage(msg.chat.id, formatLegend(args, lang, cmd))
+        let legend = formatLegend(args, lang)
+        while (!legend) {
+          let text
+          switch (lang) {
+            case 'ja':
+              text = args ? '凡例が見つかりません. ' : ''
+              text += `クエリしたい凡例に返信してください. 凡例リスト: ${promptEmojiList}`
+              break
+            case 'zh':
+              text = args ? '没有找到要查询的图例. ' : ''
+              text += `请回复要查询的图例. 图例列表: ${promptEmojiList}`
+              break
+            default:
+              text = args ? 'Legend not found. ' : ''
+              text += `Please reply the legend to be queried. Legend list: ${promptEmojiList}`
+          }
+          const sentMsg = await bot.sendMessage(msg.chat.id, text, {
+            reply_to_message_id: msg.message_id,
+            reply_markup: {
+              force_reply: true,
+              selective: true
+            }
+          })
+          msg = await requestParameters(sentMsg)
+          args = msg.text || ''
+          legend = formatLegend(args, lang)
+        }
+        await bot.sendMessage(msg.chat.id, formatLegend(args, lang))
         return
       }
 
@@ -442,6 +480,16 @@ function makurabot (bot, ident) {
 
       if (msg.chat.type === 'private') await defaultReply(bot, msg)
       return
+    }
+
+    if (msg.reply_to_message &&
+      context[msg.reply_to_message.chat.id + ''] &&
+      context[msg.reply_to_message.chat.id + ''][msg.reply_to_message.message_id]) {
+      const { cmd, data } = context[msg.reply_to_message.chat.id + ''][msg.reply_to_message.message_id]
+      if (cmd === 'request_parameters') {
+        data.resolve(msg)
+        delete context[msg.reply_to_message.chat.id + ''][msg.reply_to_message.message_id]
+      }
     }
 
     if (msg.reply_to_message &&
@@ -699,6 +747,30 @@ async function pushSession (sentMsg, cmd, data) {
     cmd, data, expireAt: date.toISOString()
   }
   await store.save()
+}
+
+async function pushContext (sentMsg, cmd, data) {
+  if (!context[sentMsg.chat.id + '']) {
+    context[sentMsg.chat.id + ''] = {}
+  }
+  const date = new Date()
+  for (const msgId of Object.keys(context[sentMsg.chat.id + ''])) {
+    let expireAt = context[sentMsg.chat.id + ''][msgId].expireAt
+    expireAt = new Date(expireAt)
+    if (date > expireAt) {
+      delete context[sentMsg.chat.id + ''][msgId]
+    }
+  }
+  date.setDate(date.getDate() + 2)
+  context[sentMsg.chat.id + ''][sentMsg.message_id + ''] = {
+    cmd, data, expireAt: date.toISOString()
+  }
+}
+
+async function requestParameters (sentMsg) {
+  return new Promise(resolve => {
+    pushContext(sentMsg, 'request_parameters', { resolve })
+  })
 }
 
 async function queryFormatWeather (cid, lang) {
