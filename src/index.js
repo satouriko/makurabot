@@ -536,12 +536,15 @@ function makurabot (bot, ident) {
 
   bot.on('inline_query', topLevelTry(async inlineQuery => {
     const args = inlineQuery.query
-    if (!args) {
-      return
-    }
     let result
     try {
-      result = await queryCity(args)
+      if (args) {
+        result = await queryCity(args)
+      } else if (inlineQuery.location) {
+        result = await queryCity(`${inlineQuery.location.longitude},${inlineQuery.location.latitude}`)
+      } else {
+        return
+      }
     } catch (err) {
       return
     }
