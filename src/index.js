@@ -358,8 +358,23 @@ function makurabot (bot, ident) {
           store.state.weather[msg.chat.id + ''] = []
           await store.save()
         }
-        const args = msg.text
+        let args = msg.text
           .substr(cmdEntity.offset + cmdEntity.length).trim()
+        if (!args) {
+          const sentMsg = await bot.sendMessage(
+            msg.chat.id,
+            `请输入您要${cmd === '/add_city' ? '添加' : '删除'}的城市的名字:`,
+            {
+              reply_to_message_id: msg.message_id,
+              reply_markup: {
+                force_reply: true,
+                selective: true
+              }
+            }
+          )
+          msg = await requestParameters(sentMsg)
+          args = msg.text || ''
+        }
         promptUserChooseCity(msg, args).then()
         return
       }
