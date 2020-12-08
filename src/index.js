@@ -513,10 +513,28 @@ function makurabot (bot, ident) {
       const matches = /来自用户 ([0-9]+)./g.exec(msg.reply_to_message.text)
       if (matches && +matches[1]) {
         const userId = +matches[1]
-        await bot.sendMessage(userId, msg.text)
+        let ok = true
+        if (msg.text) {
+          await bot.sendMessage(userId, msg.text)
+        } else if (msg.sticker) {
+          await bot.sendSticker(userId, msg.sticker.file_id)
+        } else if (msg.animation) {
+          await bot.sendAnimation(userId, msg.animation.file_id)
+        } else if (msg.photo) {
+          msg.photo.sort((a, b) => (b.width - a.width))
+          await bot.sendPhoto(userId, msg.photo[0].file_id, {
+            caption: msg.caption
+          })
+        } else if (msg.video) {
+          await bot.sendVideo(userId, msg.video.file_id)
+        } else if (msg.document) {
+          await bot.sendDocument(userId, msg.document.file_id)
+        } else {
+          ok = false
+        }
         await bot.sendMessage(
           msg.chat.id,
-          `已投递给 [${userId}](tg://user?id=${userId}).`,
+          ok ? `已投递给 [${userId}](tg://user?id=${userId}).` : '不支持的消息',
           {
             reply_to_message_id: msg.message_id,
             parse_mode: 'Markdown'
