@@ -589,6 +589,21 @@ function makurabot (bot, ident) {
       return
     }
 
+    const CHANNEL_ID = -1001495196293
+    const CHANNEL_DISCUSS_ID = -1001193583909
+    if (msg.chat.id === CHANNEL_DISCUSS_ID) {
+      if (msg.sender_chat && msg.sender_chat.id === CHANNEL_ID) {
+        await bot.sendPoll(CHANNEL_DISCUSS_ID, '\ud83d\uddf3\ufe0f', [
+          '\u2764\ufe0f', '\ud83c\udf3f', '\ud83d\udc36',
+          '\ud83d\ude10', '\ud83d\ude15', '\ud83d\udc40'
+        ], {
+          disable_notification: true,
+          reply_to_message_id: msg.message_id
+        })
+      }
+      return
+    }
+
     if (msg.chat.type !== 'private') {
       return
     }
