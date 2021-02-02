@@ -646,12 +646,6 @@ function makurabot (bot, ident) {
         parse_mode: 'Markdown'
       }
     )
-    await bot.sendMessage(msg.chat.id,
-      '早苗已经把您的重要指示上报啦!\\(๑╹◡╹๑)ﾉ♬',
-      {
-        reply_to_message_id: msg.message_id
-      }
-    )
   }))
 
   bot.on('inline_query', topLevelTry(async inlineQuery => {
