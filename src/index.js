@@ -604,6 +604,30 @@ function makurabot (bot, ident) {
       return
     }
 
+    // try to infer
+    let result
+    try {
+      result = await queryCity(msg.text)
+    } catch (err) {}
+    if (result && result.length > 0) {
+      const sentMsg = await bot.sendMessage(
+        msg.chat.id,
+        result.length === 1
+          ? '久等了, 是这里吗?'
+          : '久等了, 是哪一个呢? ',
+        {
+          reply_to_message_id: msg.message_id,
+          reply_markup: {
+            inline_keyboard: result.map(city => (
+              [{ text: city.fullname, callback_data: city.cid }]
+            ))
+          }
+        }
+      )
+      await pushSession(sentMsg, '/tianqi')
+      return
+    }
+
     if (msg.chat.type !== 'private') {
       return
     }
