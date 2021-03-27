@@ -504,6 +504,7 @@ function makurabot (bot, ident) {
       if (cmd === 'request_parameters') {
         data.resolve(msg)
         delete context[msg.reply_to_message.chat.id + ''][msg.reply_to_message.message_id]
+        return
       }
     }
 
