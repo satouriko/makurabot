@@ -10,6 +10,7 @@ const { formatWeather, formatLegend, formatDaily, formatDaily2, promptEmojiList 
 const { scheduleDateTime } = require('./schedule')
 
 const context = {}
+let mediaGroupIds = []
 
 const client = new Twitter({
   consumer_key: process.env.TWITTER_CONSUMER_KEY,
@@ -594,6 +595,13 @@ function makurabot (bot, ident) {
     const CHANNEL_DISCUSS_ID = -1001193583909
     if (msg.chat.id === CHANNEL_DISCUSS_ID) {
       if (msg.sender_chat && msg.sender_chat.id === CHANNEL_ID) {
+        if (msg.media_group_id) {
+          mediaGroupIds = mediaGroupIds.filter(([_, date]) => Date.now() - date * 1000 < 600 * 1000)
+          if (mediaGroupIds.findIndex(([id]) => id === msg.media_group_id) !== -1) {
+            return
+          }
+          mediaGroupIds.push([msg.media_group_id, msg.date])
+        }
         await bot.sendPoll(CHANNEL_DISCUSS_ID, '\ud83d\uddf3\ufe0f', [
           '\u2764\ufe0f', '\ud83c\udf3f', '\ud83d\udc36',
           '\ud83d\ude10', '\ud83d\ude15', '\ud83d\udc40'
